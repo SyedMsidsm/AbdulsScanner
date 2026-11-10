@@ -1,0 +1,42 @@
+package com.syedmsidsm.abdulsscanner.ui.nav
+
+object Routes {
+    const val HOME = "home"
+    const val DOCUMENT = "document/{docId}"
+    const val PAGE_VIEWER = "page/{docId}/{pageId}"
+    const val OCR = "ocr/{docId}?pages={pages}"
+    const val TAGS = "tags"
+    const val TOOLS = "tools"
+    const val ID_CARD = "idcard"
+    const val BOOK = "book/{docId}"
+    const val COLLAGE = "collage"
+    const val QR = "qr"
+    const val QR_RESULT = "qr/result/{id}"
+    const val QR_HISTORY = "qr/history"
+
+    const val TOOL_MERGE = "tool/merge"
+    const val TOOL_SPLIT = "tool/split"
+    const val TOOL_COMPRESS = "tool/compress"
+    const val TOOL_WATERMARK = "tool/watermark?docId={docId}"
+    const val TOOL_PASSWORD = "tool/password"
+    const val TOOL_SIGNATURE = "tool/signature?docId={docId}&pageId={pageId}"
+    const val TOOL_REORDER = "tool/reorder"
+    const val TOOL_PDF_TO_JPG = "tool/pdftojpg"
+    const val TOOL_IMPORT = "tool/import"
+    const val TOOL_OFFICE = "tool/office"
+    const val TOOL_WEB = "tool/web"
+
+    const val SETTINGS = "settings"
+    const val SETTINGS_BACKUP = "settings/backup"
+    const val SETTINGS_TRASH = "settings/trash"
+    const val SETTINGS_SECURITY = "settings/security"
+    const val LABS_ARABIC_OCR = "labs/arabic-ocr"
+
+    fun document(docId: String) = "document/$docId"
+    fun pageViewer(docId: String, pageId: String) = "page/$docId/$pageId"
+    fun ocr(docId: String, pageIds: String = "") = "ocr/$docId?pages=$pageIds"
+    fun book(docId: String) = "book/$docId"
+    fun qrResult(id: Long) = "qr/result/$id"
+    fun watermark(docId: String = "") = "tool/watermark?docId=$docId"
+    fun signature(docId: String = "", pageId: String = "") = "tool/signature?docId=$docId&pageId=$pageId"
+}

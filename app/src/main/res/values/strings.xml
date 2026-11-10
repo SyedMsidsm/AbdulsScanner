@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Abdul\'s Scanner</string>
+
+    <!-- Navigation & Tabs -->
+    <string name="nav_docs">Docs</string>
+    <string name="nav_tools">Tools</string>
+    <string name="action_camera">Scan</string>
+    <string name="action_search">Search</string>
+    <string name="action_settings">Settings</string>
+
+    <!-- Home screen -->
+    <string name="home_empty_title">You don\'t have any documents yet</string>
+    <string name="home_empty_scan_button">Scan new docs</string>
+    <string name="all_docs">All docs</string>
+    <string name="ungrouped">Ungrouped</string>
+    <string name="manage_tags">Manage tags…</string>
+    <string name="sort_last_modified">Last modified</string>
+    <string name="sort_date_created">Date created</string>
+    <string name="sort_name">Name</string>
+    <string name="action_select">Select</string>
+    <string name="selected_count">%1$d selected</string>
+    <string name="pages_count">%1$d pages</string>
+    <string name="page_count_single">1 page</string>
+
+    <!-- Overflow & Common Actions -->
+    <string name="action_rename">Rename</string>
+    <string name="action_tags">Tags</string>
+    <string name="action_share_pdf">Share PDF</string>
+    <string name="action_share_jpg">Share as JPG</string>
+    <string name="action_share_text">Share text</string>
+    <string name="action_share_password">Share with password…</string>
+    <string name="action_lock">Lock</string>
+    <string name="action_unlock">Unlock</string>
+    <string name="action_recycle_bin">Move to recycle bin</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_merge">Merge</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_ok">OK</string>
+    <string name="action_apply">Apply</string>
+    <string name="action_reset">Reset</string>
+    <string name="action_done">Done</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_print">Print</string>
+    <string name="action_export">Export</string>
+    <string name="action_undo">UNDO</string>
+
+    <!-- Document screen -->
+    <string name="add_pages">Add</string>
+    <string name="scan_more_pages">Scan more pages</string>
+    <string name="import_from_gallery">Import from gallery</string>
+    <string name="to_text">To Text</string>
+    <string name="sign">Sign</string>
+    <string name="more">More</string>
+    <string name="updating_pdf">Updating PDF…</string>
+    <string name="save_pdf_to">Save PDF to…</string>
+    <string name="save_jpgs_to_pictures">Save JPGs to Pictures</string>
+    <string name="watermark">Watermark</string>
+    <string name="compress">Compress</string>
+    <string name="page_size">Page size</string>
+    <string name="book_split">Book split</string>
+
+    <!-- Page Editor -->
+    <string name="page_editor_title">Page %1$d of %2$d</string>
+    <string name="filter_original">Original</string>
+    <string name="filter_enhanced">Enhanced</string>
+    <string name="filter_grayscale">Grayscale</string>
+    <string name="filter_bw">B&amp;W</string>
+    <string name="action_crop">Crop</string>
+    <string name="action_rotate">Rotate</string>
+    <string name="action_adjust">Adjust</string>
+    <string name="action_retake">Retake</string>
+    <string name="brightness">Brightness</string>
+    <string name="contrast">Contrast</string>
+    <string name="delete_page_confirm">Delete this page?</string>
+    <string name="delete_page_last_warn">Deleting the last page will move the document to the recycle bin.</string>
+
+    <!-- To Text / OCR -->
+    <string name="ocr_title">Text</string>
+    <string name="lang_english">English</string>
+    <string name="lang_arabic">Arabic</string>
+    <string name="lang_both">Both</string>
+    <string name="save_as_txt">Save as TXT</string>
+    <string name="save_to_document">Save to document</string>
+    <string name="ocr_reading_page">Reading page %1$d of %2$d…</string>
+    <string name="ocr_saved_success">Text saved to document</string>
+
+    <!-- Tools screen -->
+    <string name="section_scan">Scan</string>
+    <string name="tool_id_card">ID Card</string>
+    <string name="tool_scan_docs">Scan Docs</string>
+    <string name="tool_book">Book</string>
+    <string name="tool_qr_code">QR Code</string>
+    <string name="tool_to_text">To Text</string>
+
+    <string name="section_process">Process Files</string>
+    <string name="tool_import_files">Import Files</string>
+    <string name="tool_collage">Collage</string>
+    <string name="tool_watermark">Watermark</string>
+    <string name="tool_merge">Merge</string>
+    <string name="tool_compression">Compression</string>
+    <string name="tool_office_to_pdf">Word/Excel → PDF</string>
+    <string name="tool_web_to_pdf">Web page → PDF</string>
+
+    <string name="section_pdf_tools">PDF Tools</string>
+    <string name="tool_signature">Signature</string>
+    <string name="tool_password">Password</string>
+    <string name="tool_page_reorder">Page Reorder</string>
+    <string name="tool_split_pdf">Split PDF</string>
+    <string name="tool_pdf_to_jpg">PDF → JPG</string>
+
+    <!-- Tool Source Picker -->
+    <string name="tool_source_title">Choose input</string>
+    <string name="source_app_doc">A document in the app</string>
+    <string name="source_pdf_file">A PDF file on the phone</string>
+
+    <!-- ID Card -->
+    <string name="id_card_intro_title">ID Card Scan</string>
+    <string name="id_card_intro_desc">Scan the front, then the back. Both sides go on one A4 page at real size.</string>
+    <string name="id_card_start">Start</string>
+    <string name="id_card_one_side_msg">Only one side scanned.</string>
+    <string name="id_card_scan_back">Scan back side</string>
+    <string name="id_card_save_front">Save front only</string>
+
+    <!-- Book Split -->
+    <string name="book_hint">Lay the book open and flat. Scan both pages together; you\'ll split them next.</string>
+    <string name="book_order_ltr">Left → Right</string>
+    <string name="book_order_rtl">Right → Left (Arabic)</string>
+    <string name="book_apply_all">Apply this line to all spreads</string>
+    <string name="book_split_line_drag_hint">Drag the line to the book\'s spine</string>
+
+    <!-- QR Code -->
+    <string name="qr_result_title">QR Code</string>
+    <string name="qr_scan_again">Scan again</string>
+    <string name="qr_scan_from_image">Scan QR from an image</string>
+    <string name="qr_history">QR History</string>
+    <string name="qr_clear_all">Clear all</string>
+    <string name="qr_action_open">Open</string>
+    <string name="qr_action_connect">Connect</string>
+    <string name="qr_action_call">Call</string>
+    <string name="qr_action_email">Send email</string>
+    <string name="qr_action_sms">Send message</string>
+    <string name="qr_action_maps">Open in maps</string>
+    <string name="qr_password_copied">Wi-Fi password copied</string>
+
+    <!-- Backup & Restore -->
+    <string name="backup_title">Backup &amp; restore</string>
+    <string name="backup_now">Back up now</string>
+    <string name="backup_automatic">Automatic backup</string>
+    <string name="backup_restore">Restore from backup</string>
+    <string name="backup_last">Last backup: %1$s</string>
+    <string name="backup_none">No backup created yet</string>
+    <string name="backup_folder">Backup folder</string>
+    <string name="backup_interval">Backup interval</string>
+    <string name="backup_keep">Keep last backups</string>
+    <string name="banner_backup_due">Last backup %1$d days ago</string>
+    <string name="banner_no_backup">You haven\'t backed up yet</string>
+    <string name="banner_backup_failed">Automatic backup failed — choose the folder again</string>
+    <string name="banner_off_phone">Copy your newest backup off this phone (USB stick or another device) so a lost phone doesn\'t mean lost scans.</string>
+    <string name="banner_action_backup">Back up</string>
+    <string name="banner_action_fix">Fix</string>
+    <string name="banner_action_got_it">Got it</string>
+
+    <!-- Recycle Bin -->
+    <string name="recycle_bin_title">Recycle bin</string>
+    <string name="recycle_bin_empty_banner">Deleted documents are removed after 30 days</string>
+    <string name="recycle_bin_empty">Recycle bin is empty</string>
+    <string name="recycle_bin_empty_action">Empty bin</string>
+    <string name="recycle_bin_item_info">Deleted %1$s · removed in %2$d days</string>
+    <string name="action_restore">Restore</string>
+    <string name="action_delete_forever">Delete forever</string>
+    <string name="msg_moved_to_trash">Moved to recycle bin</string>
+
+    <!-- Security / Lock -->
+    <string name="security_title">Security</string>
+    <string name="lock_enter_pin">Enter PIN</string>
+    <string name="lock_set_pin">Set PIN (4–6 digits)</string>
+    <string name="lock_confirm_pin">Confirm PIN</string>
+    <string name="lock_fingerprint">Use fingerprint</string>
+    <string name="lock_forgot_pin">Forgot PIN?</string>
+    <string name="lock_pin_mismatch">PINs do not match</string>
+    <string name="lock_wrong_pin">Wrong PIN</string>
+    <string name="lock_doc_locked">This document is locked</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_backup">Backup</string>
+    <string name="settings_section_scanning">Scanning</string>
+    <string name="settings_section_pdf">PDF</string>
+    <string name="settings_section_storage">Storage</string>
+    <string name="settings_section_text_reading">Text reading</string>
+    <string name="settings_section_security">Security</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_section_qr">QR Code</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_section_labs">Labs</string>
+
+    <string name="setting_default_filter">Default filter</string>
+    <string name="setting_hd_mode">HD scans</string>
+    <string name="setting_hd_mode_desc">Bigger files, sharper pages</string>
+    <string name="setting_book_order">Book page order</string>
+    <string name="setting_page_size">Page size</string>
+    <string name="setting_file_names">File names</string>
+    <string name="setting_mirror">Keep a copy of PDFs in Documents</string>
+    <string name="setting_mirror_desc">Survives app uninstallation</string>
+    <string name="setting_ocr_search_lang">Language for search indexing</string>
+    <string name="setting_reread_pages">Re-read all pages</string>
+    <string name="setting_theme">Theme</string>
+    <string name="setting_theme_dark">Dark</string>
+    <string name="setting_theme_light">Light</string>
+    <string name="setting_theme_system">System</string>
+    <string name="setting_qr_save_history">Save scan history</string>
+    <string name="setting_camera_engine">Scanner engine</string>
+
+    <!-- Labs -->
+    <string name="labs_title">Labs — Arabic OCR Comparison</string>
+    <string name="labs_desc">Compare recognition engines on your documents</string>
+    <string name="labs_use_tesseract">Use Tesseract</string>
+    <string name="labs_use_paddle">Use PaddleOCR</string>
+
+    <!-- Dialogs & Warnings -->
+    <string name="scanner_unavailable">The scanner is getting ready. Check your internet connection once and try again.</string>
+    <string name="storage_low_warning">Low storage space. Less than 200 MB remaining.</string>
+    <string name="storage_critically_low">Storage space too low to scan or create backup.</string>
+    <string name="confirm_empty_trash">Permanently delete all items in recycle bin?</string>
+</resources>

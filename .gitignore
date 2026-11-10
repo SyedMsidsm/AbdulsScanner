@@ -1,0 +1,22 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+*/build
+*.apk
+*.aab
+
+# Signing keys and properties (Section 15.2 Rule: never commit keystore or passwords)
+*.jks
+*.keystore
+keystore.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iws
+out/
+
+# OS generated
+Thumbs.db

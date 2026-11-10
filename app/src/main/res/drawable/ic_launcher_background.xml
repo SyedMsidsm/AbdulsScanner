@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Abdul's Scanner icon. Generated from logo/design.py; 108x108 adaptive-icon canvas. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+  <solid android:color="@color/brand_green"/>
+</shape>

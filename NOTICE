@@ -1,0 +1,24 @@
+Abdul's Scanner
+Copyright (c) 2026 Abdul (SyedMsidsm)
+
+This product includes software developed by open-source projects under the Apache License, Version 2.0:
+
+1. MakeACopy
+   Copyright (c) egdels
+   Licensed under the Apache License, Version 2.0
+   https://github.com/egdels/makeacopy
+
+2. PdfBox-Android
+   Copyright (c) Tom Roush
+   Licensed under the Apache License, Version 2.0
+   https://github.com/TomRoush/PdfBox-Android
+
+3. Tesseract4Android
+   Copyright (c) Adaptech s.r.o.
+   Licensed under the Apache License, Version 2.0
+   https://github.com/adaptech-cz/Tesseract4Android
+
+4. PaddleOCR
+   Copyright (c) PaddlePaddle Authors
+   Licensed under the Apache License, Version 2.0
+   https://github.com/PaddlePaddle/PaddleOCR

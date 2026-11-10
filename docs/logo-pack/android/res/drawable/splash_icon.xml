@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Abdul's Scanner splash icon (static, Android 8-11). Generated from logo/design.py; 108x108 adaptive-icon canvas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+  <group android:name="brackets" android:pivotX="54.0" android:pivotY="54.0" android:scaleX="1.00" android:scaleY="1.00">
+    <path android:name="brackets_path" android:pathData="M32.0,41.0 V32.0 H41.0 M67.0,32.0 H76.0 V41.0 M76.0,67.0 V76.0 H67.0 M41.0,76.0 H32.0 V67.0" android:strokeColor="#FFFFFF" android:strokeAlpha="1" android:strokeWidth="3.2" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+  </group>
+  <group android:name="page" android:pivotX="54.0" android:pivotY="54.0" android:scaleX="1.00" android:scaleY="1.00">
+    <path android:name="page_path" android:pathData="M44.0,36.5 H59.5 L66.5,43.5 V69.0 Q66.5,71.5 64.0,71.5 H44.0 Q41.5,71.5 41.5,69.0 V39.0 Q41.5,36.5 44.0,36.5 Z" android:fillColor="#FFFFFF" android:fillAlpha="1"/>
+    <path android:name="fold_path" android:pathData="M59.5,36.5 V41.5 Q59.5,43.5 61.5,43.5 H66.5 Z" android:fillColor="#BFE8D6" android:fillAlpha="1"/>
+    <path android:name="line0" android:pathData="M46.0,46.0 H61.5" android:strokeColor="#B9D9CB" android:strokeAlpha="1" android:strokeWidth="2.2" android:strokeLineCap="round"/>
+    <path android:name="line1" android:pathData="M46.0,51.0 H61.5" android:strokeColor="#B9D9CB" android:strokeAlpha="1" android:strokeWidth="2.2" android:strokeLineCap="round"/>
+    <path android:name="line2" android:pathData="M46.0,61.0 H61.5" android:strokeColor="#B9D9CB" android:strokeAlpha="1" android:strokeWidth="2.2" android:strokeLineCap="round"/>
+    <path android:name="line3" android:pathData="M46.0,66.0 H56.5" android:strokeColor="#B9D9CB" android:strokeAlpha="1" android:strokeWidth="2.2" android:strokeLineCap="round"/>
+  </group>
+  <group android:name="scan" android:translateY="0">
+    <path android:name="scan_path" android:pathData="M37.0,56.0 H71.0" android:strokeColor="#0B6E4A" android:strokeAlpha="1" android:strokeWidth="2.6" android:strokeLineCap="round"/>
+  </group>
+</vector>
