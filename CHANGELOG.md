@@ -2,6 +2,25 @@
 
 All notable changes to **Abul's Scanner** will be documented in this file.
 
+## [1.0.5] - 2026-11-11
+
+### Fixed & Improved
+- **Smooth, Zero-Jitter Crop Handle Dragging (`CropAfterScanView.kt` & `CropView.kt`)**:
+  - Fixed a critical Jetpack Compose gesture bug where `quad` was passed as a restart key to `.pointerInput(imageRect, quad)`. Every single frame `onDrag` updated `quad`, Compose cancelled and restarted the `pointerInput` coroutine, terminating `detectDragGestures` mid-drag and causing severe stickiness and jitter.
+  - Changed to `.pointerInput(imageRect)` so `detectDragGestures` runs continuously for the entire drag gesture at full 60–120Hz frame rate.
+  - Switched corner handles (`0..3`) to delta-based dragging (`baseQuad + delta` from `dragStartPos`), eliminating any sudden jump when grabbing within the `48.dp` handle touch radius and keeping the 2.6× magnifier crosshair locked on the exact corner dot.
+- **Smart Auto-Cropping & Working "Auto Crop" Toggle (`PageDetector.kt` & `CropAfterScanView.kt`)**:
+  - Added `PageDetector.detectPageSmart(bgr)` and `PageDetector.detectPageBestEffortQuad(bgr)` while keeping `PageDetector.detectPage(bgr)` 100% intact for golden test parity.
+  - Added Canny-edge subtraction (`otsu_split` and `paper_split`) and morphological opening/erosion (`paper_eroded`) to separate open notebook pages across vertical spine creases and ignore nearby desk objects (pens, computer mice) that previously merged with the page contour.
+  - Updated the **"Auto Crop"** radio toggle in `CropAfterScanView.kt` so that even if initial detection was manual, `baseDetectedQuad` computes a best-effort page quad on the photo; toggling **Auto Crop** ON snaps to the page corners and toggling OFF expands to the full image.
+- **QR Code Scanner Fix (`CameraScreen.kt` & `ToolsScreen.kt`)**:
+  - Fixed live QR code scanning failing silently because `ImageAnalysis` was configured with `OUTPUT_IMAGE_FORMAT_RGBA_8888` while `InputImage.fromMediaImage` only accepts `YUV_420_888` or `JPEG` (throwing `IllegalArgumentException` on every frame).
+  - Converted analyzer frames via `imageProxy.toBitmap()` + `InputImage.fromBitmap(bmp, rotationDegrees)` with an `AtomicBoolean` concurrency guard and proper bitmap recycling in `addOnCompleteListener`.
+  - Enabled shutter-button capture and Gallery import in `QR_CODE` mode inside `CameraScreen.kt`.
+  - Routed Tools → QR Code → "Scan with Camera" directly to `Routes.camera("QR_CODE")`.
+- **High-Clarity Scanning & Focus Improvements (`CameraScreen.kt` & `SettingsRepository.kt`)**:
+  - Switched `ImageCapture` to `CAPTURE_MODE_MAXIMIZE_QUALITY`, enabled continuous center autofocus/auto-exposure metering, added Tap-to-Focus on the camera viewfinder, smoothed live green quad rendering with exponential moving average interpolation, and enabled `hdMode = true` by default.
+
 ## [1.0.4] - 2026-11-11
 
 ### Fixed & Refined

@@ -453,17 +453,19 @@ fun CameraScreen(
                         try {
                             when (currentMode) {
                                 CameraScanMode.DOCS, CameraScanMode.TO_TEXT -> {
-                                    // Authoritative auto-crop on saved photo (1:1 with reference_detect.py)
+                                    // Smart auto-crop on saved photo (exact reference_detect.py + fallback for indoor/notebooks)
                                     val bmp = BitmapIo.decodeUpright(photoFile, maxLongSide = 1000)
                                     val rgbaMat = Mat()
                                     Utils.bitmapToMat(bmp, rgbaMat)
                                     val bgrMat = Mat()
                                     Imgproc.cvtColor(rgbaMat, bgrMat, Imgproc.COLOR_RGBA2BGR)
-                                    val corners = if (autoCrop) PageDetector.detectPage(bgrMat) else null
-                                    val autoCropSuccess = (corners != null)
-                                    val detectedQuad = if (corners != null) {
-                                        PageDetector.pointsToNormalizedQuad(corners, bmp.width.toFloat(), bmp.height.toFloat())
-                                    } else null
+                                    val corners = if (autoCrop) PageDetector.detectPageSmart(bgrMat) else null
+                                    val detectedQuad = when {
+                                        corners != null -> PageDetector.pointsToNormalizedQuad(corners, bmp.width.toFloat(), bmp.height.toFloat())
+                                        autoCrop && autoQuad != null && PerspectiveCrop.isValidQuad(autoQuad) -> autoQuad
+                                        else -> null
+                                    }
+                                    val autoCropSuccess = (detectedQuad != null)
                                     rgbaMat.release()
                                     bgrMat.release()
                                     bmp.recycle()
@@ -529,7 +531,7 @@ fun CameraScreen(
                                             Utils.bitmapToMat(bmp, rgbaMat)
                                             val bgrMat = Mat()
                                             Imgproc.cvtColor(rgbaMat, bgrMat, Imgproc.COLOR_RGBA2BGR)
-                                            val corners = PageDetector.detectPage(bgrMat)
+                                            val corners = PageDetector.detectPageSmart(bgrMat)
                                             val detectedQuad = if (corners != null) {
                                                 PageDetector.pointsToNormalizedQuad(corners, bmp.width.toFloat(), bmp.height.toFloat())
                                             } else null
@@ -600,7 +602,29 @@ fun CameraScreen(
                                     }
                                 }
                                 CameraScanMode.QR_CODE -> {
-                                    isCapturing = false
+                                    val bmp = BitmapIo.decodeUpright(photoFile, maxLongSide = 1600)
+                                    val codes = com.syedmsidsm.abdulsscanner.domain.qr.QrScannerHelper.scanFromBitmap(bmp)
+                                    bmp.recycle()
+                                    photoFile.delete()
+                                    if (codes.isNotEmpty() && !qrHandled) {
+                                        qrHandled = true
+                                        val raw = codes.first()
+                                        val savedId = com.syedmsidsm.abdulsscanner.domain.qr.QrScannerHelper.saveScannedCode(
+                                            raw = raw,
+                                            source = com.syedmsidsm.abdulsscanner.data.db.entity.QrSource.CAMERA,
+                                            qrRepository = container.qrRepository,
+                                            settingsRepository = container.settingsRepository
+                                        )
+                                        withContext(Dispatchers.Main) {
+                                            isCapturing = false
+                                            onNavigateToQrResult(savedId, raw)
+                                        }
+                                    } else {
+                                        withContext(Dispatchers.Main) {
+                                            isCapturing = false
+                                            Toast.makeText(context, "No QR code or barcode detected. Point closely at the code.", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
                                 }
                             }
                         } catch (e: Exception) {
@@ -625,7 +649,44 @@ fun CameraScreen(
         if (uris.isNotEmpty()) {
             scope.launch(Dispatchers.IO) {
                 isCapturing = true
-                if (currentMode == CameraScanMode.DOCS || currentMode == CameraScanMode.TO_TEXT) {
+                if (currentMode == CameraScanMode.QR_CODE) {
+                    val firstUri = uris.first()
+                    try {
+                        val stream = context.contentResolver.openInputStream(firstUri)
+                        val bmp = android.graphics.BitmapFactory.decodeStream(stream)
+                        stream?.close()
+                        if (bmp != null) {
+                            val codes = com.syedmsidsm.abdulsscanner.domain.qr.QrScannerHelper.scanFromBitmap(bmp)
+                            bmp.recycle()
+                            if (codes.isNotEmpty()) {
+                                val raw = codes.first()
+                                val savedId = com.syedmsidsm.abdulsscanner.domain.qr.QrScannerHelper.saveScannedCode(
+                                    raw = raw,
+                                    source = com.syedmsidsm.abdulsscanner.data.db.entity.QrSource.IMAGE,
+                                    qrRepository = container.qrRepository,
+                                    settingsRepository = container.settingsRepository
+                                )
+                                withContext(Dispatchers.Main) {
+                                    isCapturing = false
+                                    onNavigateToQrResult(savedId, raw)
+                                }
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    isCapturing = false
+                                    Toast.makeText(context, "No QR code found in selected image", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        } else {
+                            withContext(Dispatchers.Main) {
+                                isCapturing = false
+                            }
+                        }
+                    } catch (_: Exception) {
+                        withContext(Dispatchers.Main) {
+                            isCapturing = false
+                        }
+                    }
+                } else if (currentMode == CameraScanMode.DOCS || currentMode == CameraScanMode.TO_TEXT) {
                     val sess = sessionViewModel.session.value
                     val sessionDir = ScanSession.getSessionDir(context, sess.sessionId)
                     uris.forEach { uri ->
@@ -640,7 +701,7 @@ fun CameraScreen(
                             Utils.bitmapToMat(bmp, rgbaMat)
                             val bgrMat = Mat()
                             Imgproc.cvtColor(rgbaMat, bgrMat, Imgproc.COLOR_RGBA2BGR)
-                            val corners = PageDetector.detectPage(bgrMat)
+                            val corners = PageDetector.detectPageSmart(bgrMat)
                             val quad = if (corners != null) {
                                 PageDetector.pointsToNormalizedQuad(corners, bmp.width.toFloat(), bmp.height.toFloat())
                             } else null
@@ -677,6 +738,7 @@ fun CameraScreen(
     }
 
     val analysisFrameIndex = remember { java.util.concurrent.atomic.AtomicInteger(0) }
+    val qrProcessing = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
 
     // Main Camera Viewfinder & Controls
     Box(
@@ -732,7 +794,7 @@ fun CameraScreen(
                         }
 
                         val capture = ImageCapture.Builder()
-                            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                            .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                             .setResolutionSelector(resSelector)
                             .setFlashMode(captureFlash)
                             .setTargetRotation(Surface.ROTATION_0)
@@ -751,12 +813,12 @@ fun CameraScreen(
                                 if (activePopup != null || isCapturing || activeCropScan != null) return@setAnalyzer
 
                                 if (currentMode == CameraScanMode.QR_CODE && !qrHandled) {
-                                    val mediaImage = imageProxy.image
-                                    if (mediaImage != null) {
-                                        val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+                                    if (qrProcessing.compareAndSet(false, true)) {
+                                        val bmp = imageProxy.toBitmap()
+                                        val inputImage = InputImage.fromBitmap(bmp, imageProxy.imageInfo.rotationDegrees)
                                         barcodeScanner.process(inputImage)
                                             .addOnSuccessListener { barcodes ->
-                                                val first = barcodes.firstOrNull()
+                                                val first = barcodes.firstOrNull { !it.rawValue.isNullOrEmpty() }
                                                 if (first != null && !qrHandled) {
                                                     qrHandled = true
                                                     val raw = first.rawValue.orEmpty()
@@ -767,13 +829,19 @@ fun CameraScreen(
                                                             qrRepository = container.qrRepository,
                                                             settingsRepository = container.settingsRepository
                                                         )
-                                                        onNavigateToQrResult(savedId, raw)
+                                                        withContext(Dispatchers.Main) {
+                                                            onNavigateToQrResult(savedId, raw)
+                                                        }
                                                     }
                                                 }
                                             }
+                                            .addOnCompleteListener {
+                                                bmp.recycle()
+                                                qrProcessing.set(false)
+                                            }
                                     }
                                 } else if (currentMode == CameraScanMode.DOCS || currentMode == CameraScanMode.TO_TEXT || currentMode == CameraScanMode.BOOK || currentMode == CameraScanMode.ID_CARD) {
-                                    if (analysisFrameIndex.incrementAndGet() % 3 != 0) {
+                                    if (analysisFrameIndex.incrementAndGet() % 2 != 0) {
                                         return@setAnalyzer
                                     }
                                     val bmp = imageProxy.toBitmap()
@@ -782,7 +850,7 @@ fun CameraScreen(
                                     Utils.bitmapToMat(scaled, rgbaMat)
                                     val bgrMat = Mat()
                                     Imgproc.cvtColor(rgbaMat, bgrMat, Imgproc.COLOR_RGBA2BGR)
-                                    val corners = PageDetector.detectPage(bgrMat)
+                                    val corners = PageDetector.detectPageSmart(bgrMat)
                                     val normQuad = if (corners != null) {
                                         PageDetector.pointsToNormalizedQuad(corners, scaled.width.toFloat(), scaled.height.toFloat())
                                     } else null
@@ -810,7 +878,17 @@ fun CameraScreen(
 
                                     scope.launch(Dispatchers.Main) {
                                         liveHint = updatedState.hint
-                                        liveQuad = normQuad
+                                        val prev = liveQuad
+                                        liveQuad = if (normQuad != null && prev != null && maxCornerDistance(prev, normQuad) < 0.18f) {
+                                            Quad(
+                                                p0 = Point2D(prev.p0.x * 0.4f + normQuad.p0.x * 0.6f, prev.p0.y * 0.4f + normQuad.p0.y * 0.6f),
+                                                p1 = Point2D(prev.p1.x * 0.4f + normQuad.p1.x * 0.6f, prev.p1.y * 0.4f + normQuad.p1.y * 0.6f),
+                                                p2 = Point2D(prev.p2.x * 0.4f + normQuad.p2.x * 0.6f, prev.p2.y * 0.4f + normQuad.p2.y * 0.6f),
+                                                p3 = Point2D(prev.p3.x * 0.4f + normQuad.p3.x * 0.6f, prev.p3.y * 0.4f + normQuad.p3.y * 0.6f)
+                                            )
+                                        } else {
+                                            normQuad
+                                        }
                                         if (shouldCapture && !isCapturing && activePopup == null && activeCropScan == null) {
                                             takePhoto(normQuad)
                                         }
@@ -825,13 +903,39 @@ fun CameraScreen(
                         val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
                         try {
                             cameraProvider.unbindAll()
-                            camera = cameraProvider.bindToLifecycle(
+                            val boundCam = cameraProvider.bindToLifecycle(
                                 lifecycleOwner,
                                 cameraSelector,
                                 preview,
                                 capture,
                                 analysis
                             )
+                            camera = boundCam
+                            // Trigger continuous center autofocus & auto-exposure metering
+                            post {
+                                try {
+                                    val centerPt = meteringPointFactory.createPoint(width / 2f, height / 2f)
+                                    val action = androidx.camera.core.FocusMeteringAction.Builder(
+                                        centerPt,
+                                        androidx.camera.core.FocusMeteringAction.FLAG_AF or androidx.camera.core.FocusMeteringAction.FLAG_AE
+                                    ).setAutoCancelDuration(5, java.util.concurrent.TimeUnit.SECONDS).build()
+                                    boundCam.cameraControl.startFocusAndMetering(action)
+                                } catch (_: Exception) {}
+                            }
+                            setOnTouchListener { v, event ->
+                                if (event.action == android.view.MotionEvent.ACTION_UP) {
+                                    try {
+                                        val pt = meteringPointFactory.createPoint(event.x, event.y)
+                                        val action = androidx.camera.core.FocusMeteringAction.Builder(
+                                            pt,
+                                            androidx.camera.core.FocusMeteringAction.FLAG_AF or androidx.camera.core.FocusMeteringAction.FLAG_AE
+                                        ).setAutoCancelDuration(3, java.util.concurrent.TimeUnit.SECONDS).build()
+                                        boundCam.cameraControl.startFocusAndMetering(action)
+                                    } catch (_: Exception) {}
+                                    v.performClick()
+                                }
+                                true
+                            }
                         } catch (e: Exception) {
                             android.util.Log.e("CameraScreen", "Camera bind failed", e)
                         }

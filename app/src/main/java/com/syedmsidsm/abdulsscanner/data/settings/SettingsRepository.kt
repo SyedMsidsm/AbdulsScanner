@@ -76,7 +76,7 @@ class SettingsRepository(private val context: Context) {
 
     val theme: Flow<String> = context.dataStore.data.map { it[Keys.THEME] ?: "DARK" }
     val defaultFilter: Flow<String> = context.dataStore.data.map { it[Keys.DEFAULT_FILTER] ?: "ENHANCED" }
-    val hdMode: Flow<Boolean> = context.dataStore.data.map { it[Keys.HD_MODE] ?: false }
+    val hdMode: Flow<Boolean> = context.dataStore.data.map { it[Keys.HD_MODE] ?: true }
     val pageSize: Flow<String> = context.dataStore.data.map { it[Keys.PAGE_SIZE] ?: "AUTO" }
     val namePattern: Flow<String> = context.dataStore.data.map { it[Keys.NAME_PATTERN] ?: "Scan yyyy-MM-dd HH:mm" }
     val mirrorEnabled: Flow<Boolean> = context.dataStore.data.map { it[Keys.MIRROR_ENABLED] ?: true }

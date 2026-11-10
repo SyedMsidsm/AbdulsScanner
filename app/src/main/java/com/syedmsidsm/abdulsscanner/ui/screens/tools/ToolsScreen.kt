@@ -288,27 +288,7 @@ fun ToolsScreen(
                             .clip(RoundedCornerShape(12.dp))
                             .clickable {
                                 showQrDialog = false
-                                if (activity != null) {
-                                    QrScannerHelper.startCameraScan(
-                                        activity = activity,
-                                        onSuccess = { raw ->
-                                            scope.launch {
-                                                val id = QrScannerHelper.saveScannedCode(
-                                                    raw = raw,
-                                                    source = QrSource.CAMERA,
-                                                    qrRepository = container.qrRepository,
-                                                    settingsRepository = container.settingsRepository
-                                                )
-                                                withContext(Dispatchers.Main) {
-                                                    onNavigateToRoute(Routes.qrResult(id, if (id == 0L) raw else ""))
-                                                }
-                                            }
-                                        },
-                                        onFailure = { e ->
-                                            Toast.makeText(context, "Scan failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                                        }
-                                    )
-                                }
+                                onNavigateToRoute(Routes.camera("QR_CODE"))
                             },
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                     ) {
@@ -320,7 +300,7 @@ fun ToolsScreen(
                             Spacer(modifier = Modifier.width(16.dp))
                             Column {
                                 Text("Scan with Camera", fontWeight = FontWeight.SemiBold)
-                                Text("Fast scanner powered by Google Play Services", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Live QR & barcode scanner", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }

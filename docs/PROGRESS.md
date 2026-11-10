@@ -331,5 +331,15 @@ Legend:
 - [x] 5. Route Tools screen ID Card and Book items to built-in CameraX scanner modes.
 - [x] 6. Build and verify release `v1.0.4` APK and update device.
 
+---
+
+## QR Scanner, Smart Auto-Crop & Smooth Crop Handles (`v1.0.5`)
+- [x] 1. Fix QR code scanner in live CameraX analyzer (`InputImage.fromBitmap` instead of `fromMediaImage` on `RGBA_8888`), shutter button capture, gallery import, and Tools screen launcher.
+- [x] 2. Fix unresponsive/jittery crop handle dragging by removing `quad` from `.pointerInput(imageRect)` keys and using delta-based corner dragging with `48.dp` touch target radius.
+- [x] 3. Improve auto-crop on real-world photos (`PageDetector.detectPageSmart` & `detectPageBestEffortQuad`) to separate open notebook pages across spine creases and make the "Auto Crop" toggle always snap to page corners.
+- [x] 4. Improve overall scanning quality (`CAPTURE_MODE_MAXIMIZE_QUALITY`, tap-to-focus, center AF/AE metering, smooth EMA live polygon, `hdMode = true` by default).
+- [x] 5. Build, sign, verify, install `AbulsScanner-1.0.5.apk` on phone, and push to GitHub.
+
+
 
 

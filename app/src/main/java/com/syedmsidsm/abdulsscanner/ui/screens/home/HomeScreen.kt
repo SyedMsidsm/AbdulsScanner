@@ -922,7 +922,7 @@ fun HomeScreen(
                                 org.opencv.android.Utils.bitmapToMat(bmp, rgbaMat)
                                 val bgrMat = org.opencv.core.Mat()
                                 org.opencv.imgproc.Imgproc.cvtColor(rgbaMat, bgrMat, org.opencv.imgproc.Imgproc.COLOR_RGBA2BGR)
-                                val corners = com.syedmsidsm.abdulsscanner.domain.imaging.PageDetector.detectPage(bgrMat)
+                                val corners = com.syedmsidsm.abdulsscanner.domain.imaging.PageDetector.detectPageSmart(bgrMat)
                                 val detectedQuad = if (corners != null) {
                                     com.syedmsidsm.abdulsscanner.domain.imaging.PageDetector.pointsToNormalizedQuad(corners, bmp.width.toFloat(), bmp.height.toFloat())
                                 } else null

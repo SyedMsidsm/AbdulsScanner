@@ -165,8 +165,30 @@ fun CropAfterScanView(
         }
     }
 
-    val baseDetectedQuad = remember(initialQuad) {
-        initialQuad ?: Quad.fullQuad()
+    val baseDetectedQuad = remember(initialQuad, baseBitmap) {
+        if (initialQuad != null) {
+            initialQuad
+        } else {
+            try {
+                val small = BitmapIo.downscaleBitmap(baseBitmap, maxLongSide = 1000)
+                val rgbaMat = org.opencv.core.Mat()
+                org.opencv.android.Utils.bitmapToMat(small, rgbaMat)
+                val bgrMat = org.opencv.core.Mat()
+                org.opencv.imgproc.Imgproc.cvtColor(rgbaMat, bgrMat, org.opencv.imgproc.Imgproc.COLOR_RGBA2BGR)
+                val best = com.syedmsidsm.abdulsscanner.domain.imaging.PageDetector.detectPageBestEffortQuad(bgrMat)
+                rgbaMat.release()
+                bgrMat.release()
+                if (small != baseBitmap) small.recycle()
+                best
+            } catch (_: Throwable) {
+                Quad(
+                    p0 = Point2D(0.08f, 0.08f),
+                    p1 = Point2D(0.92f, 0.08f),
+                    p2 = Point2D(0.92f, 0.92f),
+                    p3 = Point2D(0.08f, 0.92f)
+                )
+            }
+        }
     }
     var isAutoCropOn by remember { mutableStateOf(autoCropSuccess && initialQuad != null) }
 
@@ -288,7 +310,7 @@ fun CropAfterScanView(
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
-                        .pointerInput(imageRect, quad) {
+                        .pointerInput(imageRect) {
                             detectDragGestures(
                                 onDragStart = { startOffset ->
                                     val screenP0 = Offset(imageRect.left + quad.p0.x * imageRect.width, imageRect.top + quad.p0.y * imageRect.height)
@@ -302,13 +324,13 @@ fun CropAfterScanView(
                                     val screenM3 = Offset((screenP3.x + screenP0.x) / 2f, (screenP3.y + screenP0.y) / 2f)
 
                                     val handles = listOf(screenP0, screenP1, screenP2, screenP3, screenM0, screenM1, screenM2, screenM3)
-                                    val touchTargetRadius = 36.dp.toPx()
+                                    val touchTargetRadius = 48.dp.toPx()
 
                                     val distances = handles.map { hypot(startOffset.x - it.x, startOffset.y - it.y) }
                                     val minIdx = distances.indices.minByOrNull { distances[it] } ?: 0
                                     if (distances[minIdx] <= touchTargetRadius) {
                                         activeHandleIndex = minIdx
-                                        activeFingerPos = startOffset
+                                        activeFingerPos = handles[minIdx]
                                         dragStartPos = startOffset
                                         dragStartQuad = quad
                                     } else {
@@ -324,30 +346,50 @@ fun CropAfterScanView(
                                     val baseQuad = dragStartQuad ?: return@detectDragGestures
                                     change.consume()
                                     val pos = change.position
-                                    activeFingerPos = pos
+                                    isAutoCropOn = false
+
+                                    val dx = (pos.x - startPos.x) / imageRect.width
+                                    val dy = (pos.y - startPos.y) / imageRect.height
 
                                     if (idx in 0..3) {
-                                        // Corner drag: moves just that corner
-                                        val clampedX = pos.x.coerceIn(imageRect.left, imageRect.right)
-                                        val clampedY = pos.y.coerceIn(imageRect.top, imageRect.bottom)
-
-                                        val normX = ((clampedX - imageRect.left) / imageRect.width).coerceIn(0f, 1f)
-                                        val normY = ((clampedY - imageRect.top) / imageRect.height).coerceIn(0f, 1f)
-                                        val newPt = Point2D(normX, normY)
-
-                                        quad = when (idx) {
-                                            0 -> quad.copy(p0 = newPt)
-                                            1 -> quad.copy(p1 = newPt)
-                                            2 -> quad.copy(p2 = newPt)
-                                            3 -> quad.copy(p3 = newPt)
-                                            else -> quad
+                                        // Smooth delta-based corner drag (no initial jump on grab)
+                                        val updatedQuad = when (idx) {
+                                            0 -> {
+                                                val nx = (baseQuad.p0.x + dx).coerceIn(0f, 1f)
+                                                val ny = (baseQuad.p0.y + dy).coerceIn(0f, 1f)
+                                                baseQuad.copy(p0 = Point2D(nx, ny))
+                                            }
+                                            1 -> {
+                                                val nx = (baseQuad.p1.x + dx).coerceIn(0f, 1f)
+                                                val ny = (baseQuad.p1.y + dy).coerceIn(0f, 1f)
+                                                baseQuad.copy(p1 = Point2D(nx, ny))
+                                            }
+                                            2 -> {
+                                                val nx = (baseQuad.p2.x + dx).coerceIn(0f, 1f)
+                                                val ny = (baseQuad.p2.y + dy).coerceIn(0f, 1f)
+                                                baseQuad.copy(p2 = Point2D(nx, ny))
+                                            }
+                                            3 -> {
+                                                val nx = (baseQuad.p3.x + dx).coerceIn(0f, 1f)
+                                                val ny = (baseQuad.p3.y + dy).coerceIn(0f, 1f)
+                                                baseQuad.copy(p3 = Point2D(nx, ny))
+                                            }
+                                            else -> baseQuad
                                         }
+                                        quad = updatedQuad
+                                        val activePt = when (idx) {
+                                            0 -> updatedQuad.p0
+                                            1 -> updatedQuad.p1
+                                            2 -> updatedQuad.p2
+                                            else -> updatedQuad.p3
+                                        }
+                                        activeFingerPos = Offset(
+                                            imageRect.left + activePt.x * imageRect.width,
+                                            imageRect.top + activePt.y * imageRect.height
+                                        )
                                     } else {
                                         // Mid-edge drag: moves that entire edge parallel
-                                        val dx = (pos.x - startPos.x) / imageRect.width
-                                        val dy = (pos.y - startPos.y) / imageRect.height
-
-                                        quad = when (idx) {
+                                        val updatedQuad = when (idx) {
                                             4 -> { // Top edge: p0 and p1
                                                 val p0x = (baseQuad.p0.x + dx).coerceIn(0f, 1f)
                                                 val p0y = (baseQuad.p0.y + dy).coerceIn(0f, 1f)
@@ -376,8 +418,10 @@ fun CropAfterScanView(
                                                 val p0y = (baseQuad.p0.y + dy).coerceIn(0f, 1f)
                                                 baseQuad.copy(p3 = Point2D(p3x, p3y), p0 = Point2D(p0x, p0y))
                                             }
-                                            else -> quad
+                                            else -> baseQuad
                                         }
+                                        quad = updatedQuad
+                                        activeFingerPos = pos
                                     }
                                 },
                                 onDragEnd = {

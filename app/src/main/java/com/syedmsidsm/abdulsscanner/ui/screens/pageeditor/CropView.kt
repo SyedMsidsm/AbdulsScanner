@@ -52,6 +52,8 @@ fun CropView(
 ) {
     var quad by remember { mutableStateOf(initialQuad) }
     var activeHandleIndex by remember { mutableStateOf<Int?>(null) }
+    var dragStartPos by remember { mutableStateOf<Offset?>(null) }
+    var dragStartQuad by remember { mutableStateOf<Quad?>(null) }
     val isValid = remember(quad) { PerspectiveCrop.isValidQuad(quad) }
 
     val brandGreen = MaterialTheme.colorScheme.primary
@@ -110,29 +112,41 @@ fun CropView(
                                         )
 
                                         val minIdx = distances.indices.minByOrNull { distances[it] } ?: 0
-                                        // Max radius ~ 0.15 normalized
-                                        activeHandleIndex = if (distances[minIdx] < 0.20f) minIdx else null
+                                        if (distances[minIdx] < 0.22f) {
+                                            activeHandleIndex = minIdx
+                                            dragStartPos = offset
+                                            dragStartQuad = quad
+                                        } else {
+                                            activeHandleIndex = null
+                                            dragStartPos = null
+                                            dragStartQuad = null
+                                        }
                                     },
                                     onDrag = { change, _ ->
                                         val idx = activeHandleIndex ?: return@detectDragGestures
+                                        val startPos = dragStartPos ?: return@detectDragGestures
+                                        val baseQuad = dragStartQuad ?: return@detectDragGestures
                                         change.consume()
-                                        val normX = (change.position.x / size.width).coerceIn(0f, 1f)
-                                        val normY = (change.position.y / size.height).coerceIn(0f, 1f)
-                                        val pt = Point2D(normX, normY)
+                                        val dx = (change.position.x - startPos.x) / size.width
+                                        val dy = (change.position.y - startPos.y) / size.height
 
                                         quad = when (idx) {
-                                            0 -> quad.copy(p0 = pt)
-                                            1 -> quad.copy(p1 = pt)
-                                            2 -> quad.copy(p2 = pt)
-                                            3 -> quad.copy(p3 = pt)
-                                            else -> quad
+                                            0 -> baseQuad.copy(p0 = Point2D((baseQuad.p0.x + dx).coerceIn(0f, 1f), (baseQuad.p0.y + dy).coerceIn(0f, 1f)))
+                                            1 -> baseQuad.copy(p1 = Point2D((baseQuad.p1.x + dx).coerceIn(0f, 1f), (baseQuad.p1.y + dy).coerceIn(0f, 1f)))
+                                            2 -> baseQuad.copy(p2 = Point2D((baseQuad.p2.x + dx).coerceIn(0f, 1f), (baseQuad.p2.y + dy).coerceIn(0f, 1f)))
+                                            3 -> baseQuad.copy(p3 = Point2D((baseQuad.p3.x + dx).coerceIn(0f, 1f), (baseQuad.p3.y + dy).coerceIn(0f, 1f)))
+                                            else -> baseQuad
                                         }
                                     },
                                     onDragEnd = {
                                         activeHandleIndex = null
+                                        dragStartPos = null
+                                        dragStartQuad = null
                                     },
                                     onDragCancel = {
                                         activeHandleIndex = null
+                                        dragStartPos = null
+                                        dragStartQuad = null
                                     }
                                 )
                             }

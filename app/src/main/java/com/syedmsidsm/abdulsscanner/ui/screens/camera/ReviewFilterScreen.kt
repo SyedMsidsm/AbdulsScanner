@@ -153,7 +153,7 @@ fun ReviewFilterScreen(
                         Utils.bitmapToMat(bmp, rgbaMat)
                         val bgrMat = Mat()
                         Imgproc.cvtColor(rgbaMat, bgrMat, Imgproc.COLOR_RGBA2BGR)
-                        val corners = PageDetector.detectPage(bgrMat)
+                        val corners = PageDetector.detectPageSmart(bgrMat)
                         val quad = if (corners != null) {
                             PageDetector.pointsToNormalizedQuad(corners, bmp.width.toFloat(), bmp.height.toFloat())
                         } else null
