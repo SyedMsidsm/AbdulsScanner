@@ -40,10 +40,35 @@ class ScanSessionViewModel(
             if (loaded != null) {
                 _session.value = loaded
             }
+        } else {
+            val unfinished = ScanSession.findUnfinishedSessions(getApplication())
+            if (unfinished.isNotEmpty()) {
+                _session.value = unfinished.first()
+                savedStateHandle["sessionId"] = _session.value.sessionId
+            }
         }
     }
 
-    fun initSession(targetDocId: Long? = null, existingSessionId: String? = null) {
+    fun reloadFromDiskIfNeeded() {
+        if (_session.value.pages.isEmpty()) {
+            val savedId = savedStateHandle.get<String>("sessionId")
+            if (savedId != null) {
+                val dir = ScanSession.getSessionDir(getApplication(), savedId)
+                val loaded = ScanSession.load(dir)
+                if (loaded != null && loaded.pages.isNotEmpty()) {
+                    _session.value = loaded
+                    return
+                }
+            }
+            val unfinished = ScanSession.findUnfinishedSessions(getApplication())
+            if (unfinished.isNotEmpty()) {
+                _session.value = unfinished.first()
+                savedStateHandle["sessionId"] = _session.value.sessionId
+            }
+        }
+    }
+
+    fun initSession(targetDocId: String? = null, scanMode: String = "DOCS", existingSessionId: String? = null) {
         if (existingSessionId != null) {
             val dir = ScanSession.getSessionDir(getApplication(), existingSessionId)
             val loaded = ScanSession.load(dir)
@@ -69,10 +94,16 @@ class ScanSessionViewModel(
 
         val newSession = ScanSession(
             sessionId = UUID.randomUUID().toString(),
-            targetDocId = targetDocId
+            targetDocId = targetDocId,
+            scanMode = scanMode
         )
         _session.value = newSession
         savedStateHandle["sessionId"] = newSession.sessionId
+        persist()
+    }
+
+    fun setScanMode(mode: String) {
+        _session.update { it.copy(scanMode = mode) }
         persist()
     }
 

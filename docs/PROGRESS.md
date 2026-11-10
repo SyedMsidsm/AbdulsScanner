@@ -307,3 +307,18 @@ Legend:
   - [x] 8. Merged manifest permissions restricted to approved list (including `READ_MEDIA_IMAGES`, `READ_MEDIA_VISUAL_USER_SELECTED`, `READ_EXTERNAL_STORAGE` maxSdk 32).
   - [x] 9. Release APK `AbulsScanner-1.0.2.apk` built, signed with release key, and verified.
 
+---
+
+## Audit Bug Fixes & Refinements (`v1.0.3`)
+- [x] 1. Fix targetDocId String vs Long mismatch breaking "Add pages" to existing documents.
+- [x] 2. Fix "New Screenshot" card & "Unfinished Session" recovery back-stack navigation loops.
+- [x] 3. Fix TO_TEXT mode losing scan mode state and failing to navigate to OCR text screen.
+- [x] 4. Fix crop quad & rotation coordinate space distortion/misalignment in `CropAfterScanView.kt`.
+- [x] 5. Fix live green page outline (`DocsModeOverlay`) preview aspect ratio alignment with CameraX analysis frames (`FILL_CENTER`).
+- [x] 6. Throttle analyzer execution to every 3rd frame and prevent executor/scanner leaks.
+- [x] 7. Integrate auto-crop and corner detection into ID_CARD and BOOK modes.
+- [x] 8. Free native OpenCV `MatOfPoint` contours to resolve memory leak in `PageDetector.candidates()`.
+- [x] 9. Dead code cleanup (`batchCaptures`, `finishBatch`) and pass `defaultFilter` to `ScanSessionViewModel.addPage`.
+- [x] 10. Unit tests and release verification.
+
+

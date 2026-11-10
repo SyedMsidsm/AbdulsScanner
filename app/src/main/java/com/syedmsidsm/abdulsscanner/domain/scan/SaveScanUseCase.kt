@@ -594,8 +594,8 @@ class SaveScanUseCase(
         val defaultPageSize = settingsRepository.pageSize.first()
         val mirrorEnabled = settingsRepository.mirrorEnabled.first()
 
-        val isAppend = session.targetDocId != null
-        val docId = session.targetDocId?.toString() ?: UUID.randomUUID().toString()
+        val isAppend = !session.targetDocId.isNullOrBlank()
+        val docId = session.targetDocId?.takeIf { it.isNotBlank() } ?: UUID.randomUUID().toString()
 
         val docName = customName ?: if (!isAppend) {
             val pattern = settingsRepository.namePattern.first()

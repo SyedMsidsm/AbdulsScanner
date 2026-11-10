@@ -129,6 +129,7 @@ import com.syedmsidsm.abdulsscanner.domain.imaging.DetectionStatus
 import com.syedmsidsm.abdulsscanner.domain.imaging.DocumentDetector
 import com.syedmsidsm.abdulsscanner.domain.imaging.Filters
 import com.syedmsidsm.abdulsscanner.domain.imaging.PageDetector
+import com.syedmsidsm.abdulsscanner.domain.imaging.PerspectiveCrop
 import com.syedmsidsm.abdulsscanner.domain.imaging.Point2D
 import com.syedmsidsm.abdulsscanner.domain.imaging.Quad
 import com.syedmsidsm.abdulsscanner.domain.scan.CameraCaptureItem
@@ -338,11 +339,11 @@ fun CameraScreen(
     // QR state
     var qrHandled by remember { mutableStateOf(false) }
 
-    // Batch captures when "Crop images after each scan" is OFF
-    var batchCaptures by remember { mutableStateOf<List<CameraCaptureItem>>(emptyList()) }
-
     // Filter preview thumbnails
     var filterPreviewBitmaps by remember { mutableStateOf<Map<PageFilter, Bitmap>>(emptyMap()) }
+
+    val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
+    val barcodeScanner = remember { BarcodeScanning.getClient() }
 
     // Query photo sizes once camera is bound
     LaunchedEffect(camera) {
@@ -375,11 +376,14 @@ fun CameraScreen(
             try {
                 camera?.cameraControl?.enableTorch(false)
             } catch (_: Exception) {}
+            analysisExecutor.shutdown()
+            barcodeScanner.close()
         }
     }
 
     // Reset guidance on mode change
     LaunchedEffect(currentMode) {
+        sessionViewModel.setScanMode(currentMode.name)
         liveHint = GuidanceHint.SEARCHING
         liveQuad = null
         guidanceState.hint = GuidanceHint.SEARCHING
@@ -488,7 +492,8 @@ fun CameraScreen(
                                         sessionViewModel.addPage(
                                             filePath = photoFile.absolutePath,
                                             cropQuad = detectedQuad,
-                                            rotation = 0
+                                            rotation = 0,
+                                            filter = defaultFilter
                                         )
                                         val thumb = BitmapIo.decodeUpright(photoFile, maxLongSide = 160)
                                         withContext(Dispatchers.Main) {
@@ -499,7 +504,20 @@ fun CameraScreen(
                                     }
                                 }
                                 CameraScanMode.BOOK -> {
-                                    val item = CameraCaptureItem(rawImageFile = photoFile, cropQuad = null)
+                                    val bmp = BitmapIo.decodeUpright(photoFile, maxLongSide = 1000)
+                                    val rgbaMat = Mat()
+                                    Utils.bitmapToMat(bmp, rgbaMat)
+                                    val bgrMat = Mat()
+                                    Imgproc.cvtColor(rgbaMat, bgrMat, Imgproc.COLOR_RGBA2BGR)
+                                    val corners = if (autoCrop) PageDetector.detectPage(bgrMat) else null
+                                    val detectedQuad = if (corners != null) {
+                                        PageDetector.pointsToNormalizedQuad(corners, bmp.width.toFloat(), bmp.height.toFloat())
+                                    } else null
+                                    rgbaMat.release()
+                                    bgrMat.release()
+                                    bmp.recycle()
+
+                                    val item = CameraCaptureItem(rawImageFile = photoFile, cropQuad = detectedQuad)
                                     val docId = container.saveScanUseCase.saveCameraScans(
                                         captures = listOf(item),
                                         kind = DocumentKind.BOOK,
@@ -521,7 +539,44 @@ fun CameraScreen(
                                     } else {
                                         val frontBmp = BitmapIo.decodeUpright(idCardFrontFile!!, maxLongSide = 2000)
                                         val backBmp = BitmapIo.decodeUpright(photoFile, maxLongSide = 2000)
-                                        val composed = IdCardLayout.composeIdCard(frontBmp, backBmp)
+
+                                        fun cropCard(bmp: Bitmap): Bitmap {
+                                            val rgbaMat = Mat()
+                                            Utils.bitmapToMat(bmp, rgbaMat)
+                                            val bgrMat = Mat()
+                                            Imgproc.cvtColor(rgbaMat, bgrMat, Imgproc.COLOR_RGBA2BGR)
+                                            val corners = PageDetector.detectPage(bgrMat)
+                                            val quad = if (corners != null) {
+                                                PageDetector.pointsToNormalizedQuad(corners, bmp.width.toFloat(), bmp.height.toFloat())
+                                            } else null
+                                            rgbaMat.release()
+                                            bgrMat.release()
+
+                                            val finalQuad = if (quad != null && PerspectiveCrop.isValidQuad(quad)) {
+                                                quad
+                                            } else {
+                                                val aspect = 1.585f
+                                                val wFrac = 0.85f
+                                                val hFrac = (wFrac * bmp.width / aspect) / bmp.height
+                                                val left = (1f - wFrac) / 2f
+                                                val right = left + wFrac
+                                                val top = (1f - hFrac.coerceIn(0.1f, 0.9f)) / 2f
+                                                val bottom = top + hFrac.coerceIn(0.1f, 0.9f)
+                                                Quad(
+                                                    p0 = Point2D(left, top),
+                                                    p1 = Point2D(right, top),
+                                                    p2 = Point2D(right, bottom),
+                                                    p3 = Point2D(left, bottom)
+                                                )
+                                            }
+                                            return PerspectiveCrop.crop(bmp, finalQuad) ?: bmp
+                                        }
+
+                                        val frontCropped = cropCard(frontBmp)
+                                        val backCropped = cropCard(backBmp)
+                                        val composed = IdCardLayout.composeIdCard(frontCropped, backCropped)
+                                        if (frontCropped != frontBmp) frontCropped.recycle()
+                                        if (backCropped != backBmp) backCropped.recycle()
                                         frontBmp.recycle()
                                         backBmp.recycle()
                                         idCardFrontFile?.delete()
@@ -559,26 +614,6 @@ fun CameraScreen(
         )
     }
 
-
-    // Finish batch helper
-    fun finishBatch() {
-        if (batchCaptures.isEmpty()) return
-        scope.launch {
-            isCapturing = true
-            val docId = container.saveScanUseCase.saveCameraScans(
-                captures = batchCaptures,
-                kind = if (currentMode == CameraScanMode.TO_TEXT) DocumentKind.SCAN else DocumentKind.SCAN,
-                targetDocId = targetDocId
-            )
-            isCapturing = false
-            if (currentMode == CameraScanMode.TO_TEXT) {
-                onNavigateToOcr(docId)
-            } else {
-                onNavigateToDocument(docId)
-            }
-        }
-    }
-
     // Gallery Import launcher
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
@@ -610,7 +645,7 @@ fun CameraScreen(
                             bmp.recycle()
 
                             withContext(Dispatchers.Main) {
-                                sessionViewModel.addPage(destFile.absolutePath, quad, rotation = 0)
+                                sessionViewModel.addPage(destFile.absolutePath, quad, rotation = 0, filter = defaultFilter)
                             }
                         }
                     }
@@ -636,6 +671,8 @@ fun CameraScreen(
             }
         }
     }
+
+    val analysisFrameIndex = remember { java.util.concurrent.atomic.AtomicInteger(0) }
 
     // Main Camera Viewfinder & Controls
     Box(
@@ -698,9 +735,6 @@ fun CameraScreen(
                             .build()
                         imageCapture = capture
 
-                        val analysisExecutor = Executors.newSingleThreadExecutor()
-                        val barcodeScanner = BarcodeScanning.getClient()
-
                         val analysis = ImageAnalysis.Builder()
                             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
@@ -735,6 +769,9 @@ fun CameraScreen(
                                             }
                                     }
                                 } else if (currentMode == CameraScanMode.DOCS || currentMode == CameraScanMode.TO_TEXT || currentMode == CameraScanMode.BOOK || currentMode == CameraScanMode.ID_CARD) {
+                                    if (analysisFrameIndex.incrementAndGet() % 3 != 0) {
+                                        return@setAnalyzer
+                                    }
                                     val bmp = imageProxy.toBitmap()
                                     val scaled = BitmapIo.downscaleBitmap(bmp, maxLongSide = 640)
                                     val rgbaMat = Mat()
@@ -1498,14 +1535,14 @@ fun CameraScreen(
                         activeCropScan = null
                     },
                     onNextPage = { finalQuad, rot ->
-                        sessionViewModel.addPage(cropScan.file.absolutePath, finalQuad, rot)
+                        sessionViewModel.addPage(cropScan.file.absolutePath, finalQuad, rot, filter = defaultFilter)
                         val thumb = BitmapIo.decodeUpright(cropScan.file, maxLongSide = 160)
                         lastCapturedThumbnail = thumb
                         activeCropScan = null
                         showContinuePill = true
                     },
                     onDone = { finalQuad, rot ->
-                        sessionViewModel.addPage(cropScan.file.absolutePath, finalQuad, rot)
+                        sessionViewModel.addPage(cropScan.file.absolutePath, finalQuad, rot, filter = defaultFilter)
                         activeCropScan = null
                         onNavigateToReview()
                     }
@@ -1527,6 +1564,47 @@ private fun maxCornerDistance(q1: Quad, q2: Quad): Float {
 // Mode Overlays
 // -------------------------------------------------------------------------
 
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawLiveQuad(
+    liveQuad: Quad,
+    color: Color,
+    frameAspect: Float = 3f / 4f
+) {
+    val viewW = size.width
+    val viewH = size.height
+    val viewAspect = viewW / viewH
+    val drawW: Float
+    val drawH: Float
+    val offsetX: Float
+    val offsetY: Float
+    if (viewAspect > frameAspect) {
+        drawW = viewW
+        drawH = viewW / frameAspect
+        offsetX = 0f
+        offsetY = (viewH - drawH) / 2f
+    } else {
+        drawH = viewH
+        drawW = viewH * frameAspect
+        offsetX = (viewW - drawW) / 2f
+        offsetY = 0f
+    }
+
+    val p0 = Offset(offsetX + liveQuad.p0.x * drawW, offsetY + liveQuad.p0.y * drawH)
+    val p1 = Offset(offsetX + liveQuad.p1.x * drawW, offsetY + liveQuad.p1.y * drawH)
+    val p2 = Offset(offsetX + liveQuad.p2.x * drawW, offsetY + liveQuad.p2.y * drawH)
+    val p3 = Offset(offsetX + liveQuad.p3.x * drawW, offsetY + liveQuad.p3.y * drawH)
+
+    val path = Path().apply {
+        moveTo(p0.x, p0.y)
+        lineTo(p1.x, p1.y)
+        lineTo(p2.x, p2.y)
+        lineTo(p3.x, p3.y)
+        close()
+    }
+
+    drawPath(path = path, color = color.copy(alpha = 0.18f))
+    drawPath(path = path, color = color, style = Stroke(width = 3.5.dp.toPx()))
+}
+
 @Composable
 fun DocsModeOverlay(liveHint: GuidanceHint, liveQuad: Quad?) {
     val brandGreen = MaterialTheme.colorScheme.primary
@@ -1534,24 +1612,7 @@ fun DocsModeOverlay(liveHint: GuidanceHint, liveQuad: Quad?) {
     Box(modifier = Modifier.fillMaxSize()) {
         if (liveQuad != null && liveHint != GuidanceHint.SEARCHING) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-
-                val p0 = Offset(liveQuad.p0.x * w, liveQuad.p0.y * h)
-                val p1 = Offset(liveQuad.p1.x * w, liveQuad.p1.y * h)
-                val p2 = Offset(liveQuad.p2.x * w, liveQuad.p2.y * h)
-                val p3 = Offset(liveQuad.p3.x * w, liveQuad.p3.y * h)
-
-                val path = Path().apply {
-                    moveTo(p0.x, p0.y)
-                    lineTo(p1.x, p1.y)
-                    lineTo(p2.x, p2.y)
-                    lineTo(p3.x, p3.y)
-                    close()
-                }
-
-                drawPath(path = path, color = brandGreen.copy(alpha = 0.18f))
-                drawPath(path = path, color = brandGreen, style = Stroke(width = 3.5.dp.toPx()))
+                drawLiveQuad(liveQuad, brandGreen)
             }
         }
 
@@ -1580,24 +1641,7 @@ fun BookModeOverlay(bookDirection: BookDirection, liveHint: GuidanceHint, liveQu
     Box(modifier = Modifier.fillMaxSize()) {
         if (liveQuad != null && liveHint != GuidanceHint.SEARCHING) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-
-                val p0 = Offset(liveQuad.p0.x * w, liveQuad.p0.y * h)
-                val p1 = Offset(liveQuad.p1.x * w, liveQuad.p1.y * h)
-                val p2 = Offset(liveQuad.p2.x * w, liveQuad.p2.y * h)
-                val p3 = Offset(liveQuad.p3.x * w, liveQuad.p3.y * h)
-
-                val path = Path().apply {
-                    moveTo(p0.x, p0.y)
-                    lineTo(p1.x, p1.y)
-                    lineTo(p2.x, p2.y)
-                    lineTo(p3.x, p3.y)
-                    close()
-                }
-
-                drawPath(path = path, color = brandGreen.copy(alpha = 0.18f))
-                drawPath(path = path, color = brandGreen, style = Stroke(width = 3.5.dp.toPx()))
+                drawLiveQuad(liveQuad, brandGreen)
             }
         }
 
@@ -1668,24 +1712,7 @@ fun IdCardModeOverlay(isBackSide: Boolean, liveHint: GuidanceHint, liveQuad: Qua
     ) {
         if (liveQuad != null && liveHint != GuidanceHint.SEARCHING) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-
-                val p0 = Offset(liveQuad.p0.x * w, liveQuad.p0.y * h)
-                val p1 = Offset(liveQuad.p1.x * w, liveQuad.p1.y * h)
-                val p2 = Offset(liveQuad.p2.x * w, liveQuad.p2.y * h)
-                val p3 = Offset(liveQuad.p3.x * w, liveQuad.p3.y * h)
-
-                val path = Path().apply {
-                    moveTo(p0.x, p0.y)
-                    lineTo(p1.x, p1.y)
-                    lineTo(p2.x, p2.y)
-                    lineTo(p3.x, p3.y)
-                    close()
-                }
-
-                drawPath(path = path, color = brandGreen.copy(alpha = 0.18f))
-                drawPath(path = path, color = brandGreen, style = Stroke(width = 3.5.dp.toPx()))
+                drawLiveQuad(liveQuad, brandGreen)
             }
         }
 

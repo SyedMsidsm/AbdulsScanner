@@ -95,7 +95,7 @@ import java.util.UUID
 fun ReviewFilterScreen(
     sessionViewModel: ScanSessionViewModel,
     onBackToCamera: () -> Unit,
-    onDone: (docId: String) -> Unit,
+    onDone: (docId: String, mode: String) -> Unit,
     onNavigateToCrop: (pageId: String) -> Unit,
     onNavigateToCameraForRetake: (pageId: String) -> Unit,
     onNavigateToCameraForAdd: () -> Unit
@@ -268,9 +268,10 @@ fun ReviewFilterScreen(
                                 scope.launch {
                                     try {
                                         val app = context.applicationContext as com.syedmsidsm.abdulsscanner.AbdulsScannerApp
+                                        val mode = session.scanMode
                                         val docId = app.container.saveScanUseCase.saveScanSession(session)
                                         sessionViewModel.discardSession()
-                                        onDone(docId)
+                                        onDone(docId, mode)
                                     } catch (e: Throwable) {
                                         isSaving = false
                                         snackbarHostState.showSnackbar("Failed to save scan: ${e.message}")

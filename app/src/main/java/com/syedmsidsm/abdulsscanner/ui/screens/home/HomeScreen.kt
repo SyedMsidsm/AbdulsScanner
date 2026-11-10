@@ -917,10 +917,23 @@ fun HomeScreen(
                                 context.contentResolver.openInputStream(screenshot.uri)?.use { input ->
                                     destFile.outputStream().use { output -> input.copyTo(output) }
                                 }
+                                val bmp = com.syedmsidsm.abdulsscanner.domain.imaging.BitmapIo.decodeUpright(destFile, maxLongSide = 1000)
+                                val rgbaMat = org.opencv.core.Mat()
+                                org.opencv.android.Utils.bitmapToMat(bmp, rgbaMat)
+                                val bgrMat = org.opencv.core.Mat()
+                                org.opencv.imgproc.Imgproc.cvtColor(rgbaMat, bgrMat, org.opencv.imgproc.Imgproc.COLOR_RGBA2BGR)
+                                val corners = com.syedmsidsm.abdulsscanner.domain.imaging.PageDetector.detectPage(bgrMat)
+                                val detectedQuad = if (corners != null) {
+                                    com.syedmsidsm.abdulsscanner.domain.imaging.PageDetector.pointsToNormalizedQuad(corners, bmp.width.toFloat(), bmp.height.toFloat())
+                                } else null
+                                rgbaMat.release()
+                                bgrMat.release()
+                                bmp.recycle()
+
                                 val scanPage = ScanPage(
                                     id = pageId,
                                     filePath = destFile.absolutePath,
-                                    cropQuad = null,
+                                    cropQuad = detectedQuad,
                                     rotation = 0,
                                     filter = PageFilter.ORIGINAL
                                 )

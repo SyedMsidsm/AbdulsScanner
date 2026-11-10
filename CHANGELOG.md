@@ -2,6 +2,38 @@
 
 All notable changes to **Abul's Scanner** will be documented in this file.
 
+## [1.0.3] - 2026-11-10
+
+### Fixed & Refined (Audit Bug Fixes)
+- **Target Document ID String/UUID Mismatch (Audit Bug 1)**:
+  - Fixed `ScanSession.targetDocId` being typed as `Long?` while documents use UUID `String` keys. Changed `targetDocId` to `String?` across `ScanSession`, `ScanSessionViewModel`, `SaveScanUseCase`, and `MainActivity`. "Add pages" to existing documents now correctly appends to the target document rather than creating a new orphan document.
+- **Screenshot Card & Session Back-Stack Navigation (Audit Bug 2)**:
+  - Corrected navigation handling for "New Screenshot" and restored sessions in `MainActivity.kt`. Replaced linear back-stack navigation with `popBackStack(Routes.SCAN_REVIEW, inclusive = false)` fallback, preventing back-button loops or unexpected exits to home.
+  - Added `ScanSessionViewModel.reloadFromDiskIfNeeded()` on review screen entry to reliably recover unpersisted/interrupted sessions without dropping pages.
+- **TO_TEXT Mode Navigation & State Preservation (Audit Bug 3)**:
+  - Preserved the active `scanMode` inside `ScanSession` (`DOCS`, `BOOK`, `ID_CARD`, `TO_TEXT`).
+  - Updated `ReviewFilterScreen` onDone callback to pass `(docId, mode)`.
+  - When scanning in `TO_TEXT` mode, tapping Done in Review now navigates directly to `Routes.ocr(docId)` to trigger OCR text extraction rather than landing on the generic Document view.
+- **Crop Quad & Rotation Coordinate Space Alignment (Audit Bug 4)**:
+  - Decoupled image rotation and normalized quad coordinate systems in `CropAfterScanView.kt`.
+  - Added `initialRotation` support and explicit rotation matrix transforms (`rotate90Cw`, `rotate90Ccw`, `toUnrotatedSpace`).
+  - Quad coordinates are visually transformed with user rotation steps but converted back to unrotated base bitmap coordinates upon saving (`onApply`, `onDone`, `onNextPage`), eliminating crop distortion and aspect stretching in `PageRenderer`.
+- **Live Green Quad Alignment with Viewfinder (Audit Bug 5)**:
+  - Fixed aspect ratio misalignment in `CameraScreen.kt` where CameraX portrait analysis frames (3:4 aspect ratio) were projected onto screens with taller aspect ratios (e.g. 9:19.5, 9:20).
+  - Added `FILL_CENTER` aspect mapping calculation in `drawLiveQuad`, precisely aligning the live green bounding quad with the physical document across all camera modes.
+- **Camera Frame Analyzer Throttling & Resource Leaks (Audit Bug 6)**:
+  - Throttled `ImageAnalysis.Analyzer` frame processing to every 3rd frame (`analysisFrameIndex % 3 == 0`), preventing CPU starvation and preview lag.
+  - Hoisted `analysisExecutor` and `BarcodeScanner` to composable scope with cleanup in `DisposableEffect`, preventing background thread leaks when exiting the camera.
+- **ID_CARD and BOOK Mode Cropping (Audit Bug 7)**:
+  - Integrated `PageDetector.detectPage` into `CameraScanMode.BOOK` and `CameraScanMode.ID_CARD` when `autoCrop` is enabled.
+  - In `ID_CARD` mode, both front and back captures now automatically auto-crop to the card boundaries (`cropCard`) with fallback to card aspect ratio before composing the 2-sided A4 page layout.
+- **Native OpenCV Contour Memory Leak (Audit Bug 8)**:
+  - Resolved native memory leak in `PageDetector.candidates()` and `PageDetector.detectPage()`.
+  - Added explicit `.release()` calls on all discarded `MatOfPoint` contours and wrapped detection lifecycle in `try ... finally` blocks to free OpenCV C++ native buffers immediately.
+- **Dead Code Cleanup & Filter Propagation (Audit Bug 9)**:
+  - Removed unused `batchCaptures` state and deprecated `finishBatch()` dead code in `CameraScreen.kt`.
+  - Ensured selected camera `defaultFilter` is properly passed to all `sessionViewModel.addPage(...)` calls, applying user filter preferences to initial renders.
+
 ## [1.0.2] - 2026-11-10
 
 ### Fixed & Refined (Fix Pack 2)

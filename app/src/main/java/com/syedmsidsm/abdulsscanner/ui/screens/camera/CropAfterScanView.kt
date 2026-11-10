@@ -79,10 +79,34 @@ enum class CropScreenMode {
     EDIT_PAGE
 }
 
+private fun Quad.rotate90Cw(): Quad {
+    fun r(p: Point2D) = Point2D((1f - p.y).coerceIn(0f, 1f), p.x.coerceIn(0f, 1f))
+    return Quad(p0 = r(p3), p1 = r(p0), p2 = r(p1), p3 = r(p2))
+}
+
+private fun Quad.rotate90Ccw(): Quad {
+    fun r(p: Point2D) = Point2D(p.y.coerceIn(0f, 1f), (1f - p.x).coerceIn(0f, 1f))
+    return Quad(p0 = r(p1), p1 = r(p2), p2 = r(p3), p3 = r(p0))
+}
+
+private fun Quad.rotateStepsCw(steps: Int): Quad {
+    var q = this
+    repeat(((steps % 4) + 4) % 4) { q = q.rotate90Cw() }
+    return q
+}
+
+private fun Quad.toUnrotatedSpace(rotationDegrees: Int): Quad {
+    val steps = (((rotationDegrees % 360) + 360) % 360) / 90
+    var q = this
+    repeat(steps) { q = q.rotate90Ccw() }
+    return q
+}
+
 @Composable
 fun CropAfterScanView(
     rawImageFile: File,
     initialQuad: Quad?,
+    initialRotation: Int = 0,
     autoCropSuccess: Boolean = true,
     pageNumber: Int,
     totalPagesInBatch: Int,
@@ -127,7 +151,7 @@ fun CropAfterScanView(
         )
     }
 
-    var rotation by remember { mutableIntStateOf(0) }
+    var rotation by remember(initialRotation) { mutableIntStateOf(initialRotation) }
     val baseBitmap = remember(rawImageFile) {
         BitmapIo.decodeUpright(rawImageFile, maxLongSide = 2048)
     }
@@ -141,15 +165,14 @@ fun CropAfterScanView(
         }
     }
 
-    // Auto Crop toggle state: default ON when autoCropSuccess and initialQuad != null
-    val detectedQuad = remember(initialQuad) {
+    val baseDetectedQuad = remember(initialQuad) {
         initialQuad ?: Quad.fullQuad()
     }
     var isAutoCropOn by remember { mutableStateOf(autoCropSuccess && initialQuad != null) }
 
-    var quad by remember(initialQuad) {
+    var quad by remember(initialQuad, initialRotation) {
         mutableStateOf(
-            if (autoCropSuccess && initialQuad != null) initialQuad else Quad.fullQuad()
+            (if (autoCropSuccess && initialQuad != null) initialQuad else Quad.fullQuad()).rotateStepsCw(initialRotation / 90)
         )
     }
 
@@ -219,7 +242,10 @@ fun CropAfterScanView(
 
                 // Rotate button in top-right
                 FilledTonalIconButton(
-                    onClick = { rotation = (rotation + 90) % 360 },
+                    onClick = {
+                        rotation = (rotation + 90) % 360
+                        quad = quad.rotate90Cw()
+                    },
                     colors = IconButtonDefaults.filledTonalIconButtonColors(
                         containerColor = Color(0xFF2A2A2A),
                         contentColor = Color.White
@@ -552,7 +578,7 @@ fun CropAfterScanView(
                         .clickable {
                             val next = !isAutoCropOn
                             isAutoCropOn = next
-                            quad = if (next) detectedQuad else Quad.fullQuad()
+                            quad = if (next) baseDetectedQuad.rotateStepsCw(rotation / 90) else Quad.fullQuad()
                         }
                         .padding(horizontal = 8.dp, vertical = 6.dp)
                 ) {
@@ -592,7 +618,12 @@ fun CropAfterScanView(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Button(
-                        onClick = { if (isValid) onApply(quad, rotation) },
+                        onClick = {
+                            if (isValid) {
+                                val unrotatedQuad = quad.toUnrotatedSpace(rotation)
+                                onApply(unrotatedQuad, rotation)
+                            }
+                        },
                         enabled = isValid,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = brandGreen,
@@ -616,7 +647,8 @@ fun CropAfterScanView(
                     Button(
                         onClick = {
                             if (isValid) {
-                                onDone(quad, rotation)
+                                val unrotatedQuad = quad.toUnrotatedSpace(rotation)
+                                onDone(unrotatedQuad, rotation)
                             }
                         },
                         enabled = isValid,

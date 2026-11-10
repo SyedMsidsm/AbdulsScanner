@@ -62,14 +62,16 @@ data class ScanSession(
     val sessionId: String = UUID.randomUUID().toString(),
     val createdAt: Long = System.currentTimeMillis(),
     val pages: List<ScanPage> = emptyList(),
-    val targetDocId: Long? = null
+    val targetDocId: String? = null,
+    val scanMode: String = "DOCS"
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("sessionId", sessionId)
         put("createdAt", createdAt)
-        if (targetDocId != null) {
+        if (!targetDocId.isNullOrBlank()) {
             put("targetDocId", targetDocId)
         }
+        put("scanMode", scanMode)
         val pagesArray = JSONArray()
         pages.forEach { pagesArray.put(it.toJson()) }
         put("pages", pagesArray)
@@ -107,13 +109,14 @@ data class ScanSession(
                 val root = JSONObject(jsonFile.readText(Charsets.UTF_8))
                 val sessionId = root.getString("sessionId")
                 val createdAt = root.optLong("createdAt", System.currentTimeMillis())
-                val targetDocId = if (root.has("targetDocId")) root.getLong("targetDocId") else null
+                val targetDocId = if (root.has("targetDocId")) root.getString("targetDocId") else null
+                val scanMode = root.optString("scanMode", "DOCS")
                 val pages = ArrayList<ScanPage>()
                 val pagesArray = root.optJSONArray("pages") ?: JSONArray()
                 for (i in 0 until pagesArray.length()) {
                     pages.add(ScanPage.fromJson(pagesArray.getJSONObject(i)))
                 }
-                ScanSession(sessionId, createdAt, pages, targetDocId)
+                ScanSession(sessionId, createdAt, pages, targetDocId, scanMode)
             } catch (e: Throwable) {
                 Log.e(TAG, "Failed to load session from $sessionDir", e)
                 null

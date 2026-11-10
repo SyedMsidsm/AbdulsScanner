@@ -438,10 +438,10 @@ class MainActivity : ComponentActivity() {
                                 CameraScanMode.DOCS
                             }
 
-                            val targetDocIdLong = docIdParam.toLongOrNull()
-                            androidx.compose.runtime.LaunchedEffect(targetDocIdLong) {
+                            val targetDocIdStr = docIdParam.takeIf { it.isNotBlank() }
+                            androidx.compose.runtime.LaunchedEffect(targetDocIdStr, scanMode) {
                                 if (retakeIdParam.isEmpty()) {
-                                    scanSessionViewModel.initSession(targetDocId = targetDocIdLong)
+                                    scanSessionViewModel.initSession(targetDocId = targetDocIdStr, scanMode = scanMode.name)
                                 }
                             }
 
@@ -458,7 +458,10 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 onNavigateToReview = {
-                                    navController.navigate(Routes.scanReview())
+                                    val popped = navController.popBackStack(Routes.SCAN_REVIEW, inclusive = false)
+                                    if (!popped) {
+                                        navController.navigate(Routes.scanReview())
+                                    }
                                 },
                                 onNavigateToBookSplit = { docId, pageId ->
                                     navController.navigate(Routes.book(docId, pageId)) {
@@ -508,6 +511,7 @@ class MainActivity : ComponentActivity() {
                             CropAfterScanView(
                                 rawImageFile = java.io.File(page.filePath),
                                 initialQuad = page.cropQuad,
+                                initialRotation = page.rotation,
                                 autoCropSuccess = page.cropQuad != null,
                                 pageNumber = if (pageIndex >= 0) pageIndex + 1 else 1,
                                 totalPagesInBatch = scanSessionViewModel.pageCount,
@@ -540,14 +544,27 @@ class MainActivity : ComponentActivity() {
                             }
                             val scanSessionViewModel: ScanSessionViewModel = androidx.lifecycle.viewmodel.compose.viewModel(parentEntry)
 
+                            androidx.compose.runtime.LaunchedEffect(Unit) {
+                                scanSessionViewModel.reloadFromDiskIfNeeded()
+                            }
+
                             ReviewFilterScreen(
                                 sessionViewModel = scanSessionViewModel,
                                 onBackToCamera = {
-                                    navController.popBackStack(Routes.SCAN_CAMERA, inclusive = false)
+                                    val popped = navController.popBackStack(Routes.SCAN_CAMERA, inclusive = false)
+                                    if (!popped) {
+                                        navController.popBackStack()
+                                    }
                                 },
-                                onDone = { docId ->
-                                    navController.navigate(Routes.document(docId)) {
-                                        popUpTo(Routes.HOME)
+                                onDone = { docId, mode ->
+                                    if (mode == CameraScanMode.TO_TEXT.name) {
+                                        navController.navigate(Routes.ocr(docId)) {
+                                            popUpTo(Routes.HOME)
+                                        }
+                                    } else {
+                                        navController.navigate(Routes.document(docId)) {
+                                            popUpTo(Routes.HOME)
+                                        }
                                     }
                                 },
                                 onNavigateToCrop = { pageId ->
@@ -557,7 +574,10 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(Routes.scanCamera(retakeId = pageId))
                                 },
                                 onNavigateToCameraForAdd = {
-                                    navController.popBackStack(Routes.SCAN_CAMERA, inclusive = false)
+                                    val popped = navController.popBackStack(Routes.SCAN_CAMERA, inclusive = false)
+                                    if (!popped) {
+                                        navController.navigate(Routes.scanCamera())
+                                    }
                                 }
                             )
                         }

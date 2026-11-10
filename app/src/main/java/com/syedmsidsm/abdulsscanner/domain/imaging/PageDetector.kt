@@ -322,6 +322,7 @@ object PageDetector {
             hierarchy.release()
             m.release()
 
+            val kept = HashSet<MatOfPoint>()
             val sorted = contours.sortedByDescending { Imgproc.contourArea(it) }.take(8)
             for (c in sorted) {
                 if (Imgproc.contourArea(c) < MIN_AREA_FRACTION * w * h * 0.5) {
@@ -329,6 +330,12 @@ object PageDetector {
                 }
                 val q = toQuad(c, w, h)
                 out.add(Candidate(name, c, q))
+                kept.add(c)
+            }
+            for (c in contours) {
+                if (c !in kept) {
+                    c.release()
+                }
             }
         }
 
@@ -372,17 +379,20 @@ object PageDetector {
         var bestQ: List<Point>? = null
 
         val (cands, paper) = candidates(small)
-        for ((name, c, q) in cands) {
-            val (s, oq) = score(q, c, w, h, paper)
-            if (s > bestScore) {
-                bestScore = s
-                bestQ = oq
+        try {
+            for ((name, c, q) in cands) {
+                val (s, oq) = score(q, c, w, h, paper)
+                if (s > bestScore) {
+                    bestScore = s
+                    bestQ = oq
+                }
             }
-        }
-
-        paper.release()
-        if (small !== bgr) {
-            small.release()
+        } finally {
+            cands.forEach { it.contour.release() }
+            paper.release()
+            if (small !== bgr) {
+                small.release()
+            }
         }
 
         if (bestQ == null) {
