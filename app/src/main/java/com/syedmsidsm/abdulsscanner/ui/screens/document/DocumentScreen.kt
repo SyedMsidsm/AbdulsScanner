@@ -46,6 +46,7 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Print
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.TextFields
+import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -111,6 +112,8 @@ fun DocumentScreen(
     onNavigateToOcr: (String) -> Unit,
     onNavigateToSecurity: () -> Unit = {},
     onNavigateToBookSplit: (String, String) -> Unit = { _, _ -> },
+    onNavigateToWatermark: ((String) -> Unit)? = null,
+    onNavigateToSign: ((String) -> Unit)? = null,
     onSharePdf: (DocumentEntity) -> Unit,
     onShareJpg: (DocumentEntity) -> Unit,
     onPrint: (DocumentEntity) -> Unit
@@ -620,6 +623,40 @@ fun DocumentScreen(
                         text = "Book split",
                         style = MaterialTheme.typography.bodyLarge
                     )
+                }
+
+                // Watermark
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable {
+                            showMoreSheet = false
+                            onNavigateToWatermark?.invoke(doc.id)
+                        }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Outlined.WaterDrop, null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Watermark", style = MaterialTheme.typography.bodyLarge)
+                }
+
+                // Sign
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable {
+                            showMoreSheet = false
+                            onNavigateToSign?.invoke(doc.id)
+                        }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Outlined.Draw, null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Sign document", style = MaterialTheme.typography.bodyLarge)
                 }
 
                 // Export JPGs to Pictures

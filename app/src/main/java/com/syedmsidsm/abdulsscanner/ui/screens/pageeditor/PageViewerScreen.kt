@@ -35,9 +35,13 @@ import androidx.compose.material.icons.outlined.AutoFixHigh
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Crop
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Draw
+import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.RotateRight
 import androidx.compose.material.icons.outlined.Tune
+import com.syedmsidsm.abdulsscanner.domain.imaging.OverlayCompositor
+import com.syedmsidsm.abdulsscanner.domain.imaging.PageOverlay
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -104,7 +108,8 @@ fun PageViewerScreen(
     documentRepository: DocumentRepository,
     pageRenderer: PageRenderer,
     fileStore: FileStore,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToSign: ((docId: String, pageId: String) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -123,6 +128,7 @@ fun PageViewerScreen(
     var showAdjustPanel by remember { mutableStateOf(false) }
     var isCropMode by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showOverlaysDialog by remember { mutableStateOf(false) }
     var sourceBitmapForCrop by remember { mutableStateOf<Bitmap?>(null) }
 
     // Undo state
@@ -232,6 +238,22 @@ fun PageViewerScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showOverlaysDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Outlined.Layers,
+                            contentDescription = "Signatures & watermarks",
+                            tint = Color.White
+                        )
+                    }
+                    if (onNavigateToSign != null && currentPage != null) {
+                        IconButton(onClick = { onNavigateToSign(docId, currentPage.id) }) {
+                            Icon(
+                                imageVector = Icons.Outlined.Draw,
+                                contentDescription = "Sign page",
+                                tint = Color.White
+                            )
+                        }
+                    }
                     IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(
                             imageVector = Icons.Outlined.Delete,
@@ -500,6 +522,15 @@ fun PageViewerScreen(
                             label = "Retake",
                             onClick = { launchRetake() }
                         )
+
+                        // Sign
+                        if (onNavigateToSign != null) {
+                            BottomEditorAction(
+                                icon = Icons.Outlined.Draw,
+                                label = "Sign",
+                                onClick = { onNavigateToSign(docId, currentPage.id) }
+                            )
+                        }
                     }
                 }
             }
@@ -537,6 +568,57 @@ fun PageViewerScreen(
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Overlays Dialog (Signatures & Watermarks)
+    if (showOverlaysDialog && currentPage != null) {
+        val currentOverlays = OverlayCompositor.parseOverlays(currentPage.overlays)
+        AlertDialog(
+            onDismissRequest = { showOverlaysDialog = false },
+            title = { Text("Signatures & Watermarks") },
+            text = {
+                if (currentOverlays.isEmpty()) {
+                    Text("No signatures or watermarks applied to this page.")
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        currentOverlays.forEachIndexed { index, overlay ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val label = when (overlay) {
+                                    is PageOverlay.Signature -> "Signature"
+                                    is PageOverlay.Watermark -> "Watermark: ${overlay.text}"
+                                }
+                                Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                TextButton(
+                                    onClick = {
+                                        val mutable = currentOverlays.toMutableList()
+                                        mutable.removeAt(index)
+                                        val json = OverlayCompositor.serializeOverlays(mutable)
+                                        applyPageChange(
+                                            currentPage.copy(overlays = json),
+                                            "Removed $label"
+                                        )
+                                        showOverlaysDialog = false
+                                    }
+                                ) {
+                                    Text("Remove", color = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showOverlaysDialog = false }) {
+                    Text("Close")
                 }
             }
         )

@@ -26,6 +26,9 @@ interface PageDao {
     @Update
     suspend fun update(page: PageEntity)
 
+    @Update
+    suspend fun updateAll(pages: List<PageEntity>)
+
     @Query("SELECT * FROM pages WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): PageEntity?
 

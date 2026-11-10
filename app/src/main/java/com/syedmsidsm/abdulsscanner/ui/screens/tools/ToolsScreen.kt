@@ -186,21 +186,21 @@ fun ToolsScreen(
     )
 
     val processTools = listOf(
-        ToolItem(R.string.tool_import_files, Icons.Outlined.UploadFile, phaseLabel = "Phase 6", route = Routes.TOOL_IMPORT),
+        ToolItem(R.string.tool_import_files, Icons.Outlined.UploadFile, route = Routes.TOOL_IMPORT),
         ToolItem(R.string.tool_collage, Icons.Outlined.GridOn, route = Routes.COLLAGE),
-        ToolItem(R.string.tool_watermark, Icons.Outlined.WaterDrop, phaseLabel = "Phase 6", route = Routes.TOOL_WATERMARK),
-        ToolItem(R.string.tool_merge, Icons.Outlined.MergeType, phaseLabel = "Phase 6", route = Routes.TOOL_MERGE),
-        ToolItem(R.string.tool_compression, Icons.Outlined.Compress, phaseLabel = "Phase 6", route = Routes.TOOL_COMPRESS),
+        ToolItem(R.string.tool_watermark, Icons.Outlined.WaterDrop, route = Routes.TOOL_WATERMARK),
+        ToolItem(R.string.tool_merge, Icons.Outlined.MergeType, route = Routes.TOOL_MERGE),
+        ToolItem(R.string.tool_compression, Icons.Outlined.Compress, route = Routes.TOOL_COMPRESS),
         ToolItem(R.string.tool_office_to_pdf, Icons.Outlined.Description, phaseLabel = "Phase 7", route = Routes.TOOL_OFFICE),
-        ToolItem(R.string.tool_web_to_pdf, Icons.Outlined.Web, phaseLabel = "Phase 6", route = Routes.TOOL_WEB)
+        ToolItem(R.string.tool_web_to_pdf, Icons.Outlined.Web, route = Routes.TOOL_WEB)
     )
 
     val pdfTools = listOf(
-        ToolItem(R.string.tool_signature, Icons.Outlined.Draw, phaseLabel = "Phase 6", route = Routes.TOOL_SIGNATURE),
-        ToolItem(R.string.tool_password, Icons.Outlined.Lock, phaseLabel = "Phase 6", route = Routes.TOOL_PASSWORD),
-        ToolItem(R.string.tool_page_reorder, Icons.Outlined.Reorder, phaseLabel = "Phase 6", route = Routes.TOOL_REORDER),
-        ToolItem(R.string.tool_split_pdf, Icons.Outlined.PictureAsPdf, phaseLabel = "Phase 6", route = Routes.TOOL_SPLIT),
-        ToolItem(R.string.tool_pdf_to_jpg, Icons.Outlined.Image, phaseLabel = "Phase 6", route = Routes.TOOL_PDF_TO_JPG)
+        ToolItem(R.string.tool_signature, Icons.Outlined.Draw, route = Routes.TOOL_SIGNATURE),
+        ToolItem(R.string.tool_password, Icons.Outlined.Lock, route = Routes.TOOL_PASSWORD),
+        ToolItem(R.string.tool_page_reorder, Icons.Outlined.Reorder, route = Routes.TOOL_REORDER),
+        ToolItem(R.string.tool_split_pdf, Icons.Outlined.PictureAsPdf, route = Routes.TOOL_SPLIT),
+        ToolItem(R.string.tool_pdf_to_jpg, Icons.Outlined.Image, route = Routes.TOOL_PDF_TO_JPG)
     )
 
     Scaffold(

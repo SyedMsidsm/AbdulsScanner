@@ -137,5 +137,19 @@ class AppContainer(val context: Context) {
         )
     }
 
+    val pdfToolsService: com.syedmsidsm.abdulsscanner.domain.pdf.PdfToolsService by lazy {
+        com.syedmsidsm.abdulsscanner.domain.pdf.PdfToolsService(
+            context = context,
+            database = database,
+            fileStore = fileStore,
+            pageRenderer = pageRenderer,
+            pdfBuilder = pdfBuilder,
+            mirrorStore = mirrorStore,
+            settingsRepository = settingsRepository,
+            mergeDocumentsUseCase = mergeDocumentsUseCase,
+            saveScanUseCase = saveScanUseCase
+        )
+    }
+
     var pendingBookScanUris: List<android.net.Uri> = emptyList()
 }

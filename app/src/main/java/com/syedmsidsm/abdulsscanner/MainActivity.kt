@@ -46,6 +46,16 @@ import com.syedmsidsm.abdulsscanner.ui.screens.settings.SettingsScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.settings.SettingsViewModel
 import com.syedmsidsm.abdulsscanner.ui.screens.tags.TagsScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.tags.TagsViewModel
+import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolCompressScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolImportScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolMergeScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolPageReorderScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolPasswordScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolPdfToJpgScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolSignatureScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolSplitScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolWatermarkScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolWebToPdfScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolsScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.trash.RecycleBinScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.trash.RecycleBinViewModel
@@ -277,6 +287,12 @@ class MainActivity : ComponentActivity() {
                             onNavigateToBookSplit = { dId, pId ->
                                 navController.navigate(Routes.book(dId, pId))
                             },
+                            onNavigateToWatermark = { dId ->
+                                navController.navigate(Routes.watermark(dId))
+                            },
+                            onNavigateToSign = { dId ->
+                                navController.navigate(Routes.signature(dId))
+                            },
                             onSharePdf = { doc -> shareDocumentPdf(doc) },
                             onShareJpg = { doc -> shareDocumentJpgs(doc) },
                             onPrint = { doc -> printDocumentPdf(doc) }
@@ -299,7 +315,10 @@ class MainActivity : ComponentActivity() {
                             documentRepository = container.documentRepository,
                             pageRenderer = container.pageRenderer,
                             fileStore = container.fileStore,
-                            onNavigateBack = { navController.popBackStack() }
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToSign = { dId, pId ->
+                                navController.navigate(Routes.signature(dId, pId))
+                            }
                         )
                     }
 
@@ -505,6 +524,123 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate(Routes.document(docId)) {
                                     popUpTo(Routes.TOOLS) { inclusive = false }
                                 }
+                            }
+                        )
+                    }
+
+                    composable(Routes.TOOL_MERGE) {
+                        ToolMergeScreen(
+                            container = container,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToDoc = { targetId ->
+                                navController.navigate(Routes.document(targetId))
+                            }
+                        )
+                    }
+
+                    composable(Routes.TOOL_SPLIT) {
+                        ToolSplitScreen(
+                            container = container,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToDoc = { targetId ->
+                                navController.navigate(Routes.document(targetId))
+                            }
+                        )
+                    }
+
+                    composable(Routes.TOOL_COMPRESS) {
+                        ToolCompressScreen(
+                            container = container,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToDoc = { targetId ->
+                                navController.navigate(Routes.document(targetId))
+                            }
+                        )
+                    }
+
+                    composable(
+                        route = Routes.TOOL_WATERMARK,
+                        arguments = listOf(
+                            navArgument("docId") { type = NavType.StringType; defaultValue = "" }
+                        )
+                    ) { backStackEntry ->
+                        val docId = backStackEntry.arguments?.getString("docId").orEmpty()
+                        ToolWatermarkScreen(
+                            docIdArg = if (docId.isNotBlank()) docId else null,
+                            container = container,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToDoc = { targetId ->
+                                navController.navigate(Routes.document(targetId))
+                            }
+                        )
+                    }
+
+                    composable(Routes.TOOL_PASSWORD) {
+                        ToolPasswordScreen(
+                            container = container,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToDoc = { targetId ->
+                                navController.navigate(Routes.document(targetId))
+                            }
+                        )
+                    }
+
+                    composable(
+                        route = Routes.TOOL_SIGNATURE,
+                        arguments = listOf(
+                            navArgument("docId") { type = NavType.StringType; defaultValue = "" },
+                            navArgument("pageId") { type = NavType.StringType; defaultValue = "" }
+                        )
+                    ) { backStackEntry ->
+                        val docId = backStackEntry.arguments?.getString("docId").orEmpty()
+                        val pageId = backStackEntry.arguments?.getString("pageId").orEmpty()
+                        ToolSignatureScreen(
+                            docIdArg = if (docId.isNotBlank()) docId else null,
+                            pageIdArg = if (pageId.isNotBlank()) pageId else null,
+                            container = container,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToDoc = { targetId ->
+                                navController.navigate(Routes.document(targetId))
+                            }
+                        )
+                    }
+
+                    composable(Routes.TOOL_REORDER) {
+                        ToolPageReorderScreen(
+                            container = container,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToDoc = { targetId ->
+                                navController.navigate(Routes.document(targetId))
+                            }
+                        )
+                    }
+
+                    composable(Routes.TOOL_PDF_TO_JPG) {
+                        ToolPdfToJpgScreen(
+                            container = container,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToDoc = { targetId ->
+                                navController.navigate(Routes.document(targetId))
+                            }
+                        )
+                    }
+
+                    composable(Routes.TOOL_IMPORT) {
+                        ToolImportScreen(
+                            container = container,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToDoc = { targetId ->
+                                navController.navigate(Routes.document(targetId))
+                            }
+                        )
+                    }
+
+                    composable(Routes.TOOL_WEB) {
+                        ToolWebToPdfScreen(
+                            container = container,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToDoc = { targetId ->
+                                navController.navigate(Routes.document(targetId))
                             }
                         )
                     }

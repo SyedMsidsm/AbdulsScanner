@@ -4,6 +4,26 @@ All notable changes to **Abdul's Scanner** will be documented in this file.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-10
+
+### Added
+- PDF Tools Service (`PdfToolsService`): handles universal tool inputs (`ToolInput.AppDoc`, `ToolInput.PdfFile`), MediaStore export into `Documents/Abdul's Scanner/Tools/{name} ({suffix}).pdf`, and tool result bottom sheet with Open, Share, and Add to App options.
+- PDF Merge tool (`ToolMergeScreen`): interactive reorderable list of 2+ inputs (mixing app documents and external PDF files), custom naming, and merging via `PDFMergerUtility` or app document merge.
+- PDF Split tool (`ToolSplitScreen`): page extraction grid for app documents with optional removal from original; range string parsing (e.g. `1-3, 5, 8-10`) or "Every page separately" splitting for external PDF files.
+- PDF Compression tool (`ToolCompressScreen`): Small (1240 px, q50), Medium (1754 px, q65), and Large (2480 px, q80) presets; re-encodes embedded image XObjects while preserving text and vector content; displays before/after file sizes; and warns if the PDF is already compact.
+- PDF Watermark tool (`ToolWatermarkScreen`): customizable watermark text with Android `Canvas` + `StaticLayout` ensuring correct Arabic ligature shaping and RTL order; presets for size (S=4%, M=6%, L=9%), opacity slider (10%–60%), rotation angle (0°, 30°, 45°), color palette (Grey, Red, Blue), and single-centered vs. tiled modes; supports batch stamping onto all pages of app documents and external PDFs; plus "Remove watermark from all pages".
+- PDF Password tool (`ToolPasswordScreen`): 256-bit AES encryption protection (`StandardProtectionPolicy`) and password removal with current password validation and wrong password error handling.
+- Signature feature (`SignaturePad`, `ToolSignatureScreen`): 2.5:1 drawing pad with smooth quadratic Bézier curve finger drawing, stroke width 6 px, black or blue ink choices, automatic transparent PNG trimming with 16 px padding, saved library storing up to 5 signatures (`SignatureEntity`), interactive draggable/pinch-resizable signature placement on pages (min width 5%), and Page Viewer "Signatures & watermarks" overlay manager with individual removal.
+- PDF Page Reorder tool (`ToolPageReorderScreen`): thumbnail grid generated via `PdfRenderer`, page reordering, page deletion with minimum 1-page guard, and reordered PDF generation.
+- PDF -> JPG tool (`ToolPdfToJpgScreen`): converts pages to 200 DPI JPEG images saved into `Pictures/Abdul's Scanner/{name}/`.
+- Import Files tool (`ToolImportScreen`): import multiple images (`IMPORT_IMAGES`) or render external PDF pages at 200 DPI into new editable documents (`IMPORT_PDF`), with encrypted PDF password prompt and large document (>100 pages) warning.
+- Web Page -> PDF tool (`ToolWebToPdfScreen`): visible `WebView` preview with progress bar, URL navigation (auto-prepending `https://`), JavaScript enabled with file access and geolocation disabled, and Android `PrintManager` integration with post-print "Add saved PDF to app" flow.
+- Unit tests: `PdfCoordinatesTest` verifying 0..1 normalized coordinate to PDF media box space mappings across all four page rotations (0°, 90°, 180°, 270°).
+
+### Decisions
+- Overlay coordinates use 0..1 normalized units relative to upright rendered page dimensions so they remain consistent across page rotations and export resolutions.
+- Web Page -> PDF uses the Android system print service (`PrintManager` + `createPrintDocumentAdapter`), allowing the user to select "Save as PDF" to any local destination without third-party network services.
+
 ## [0.5.0] - 2026-11-10
 
 ### Added

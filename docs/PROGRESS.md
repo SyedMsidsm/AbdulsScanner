@@ -138,26 +138,26 @@ Legend:
 ---
 
 ## Phase 6 — PDF tools
-- [ ] Universal tool input picker (App document vs external PDF file via SAF)
-- [ ] Output saving to `Documents/Abdul's Scanner/Tools/` with result action sheet
-- [ ] PDF Merge tool (app docs & external PDF files via `PDFMergerUtility`)
-- [ ] PDF Split tool (page extraction to app doc, or range extraction to external files)
-- [ ] PDF Compression tool: Small, Medium, Large image re-encoding presets with size comparison
-- [ ] PDF Watermark tool: custom text, Arabic RTL support, size, opacity, angle, color, single or tiled
-- [ ] PDF Password tool: 256-bit AES encryption protection & password removal
-- [ ] Signature feature: signature drawing pad, smoothing Bézier curves, save up to 5 signatures, draggable/resizable placement, overlay removal
-- [ ] PDF Page Reorder tool for external PDF files
-- [ ] PDF -> JPG tool: rasterize PDF pages to JPEG in Pictures
-- [ ] Import Files tool: import external images or rasterize external PDF pages into new documents
-- [ ] Web page -> PDF tool: URL input, WebView rendering, Android print adapter
-- [ ] Build & tests for Phase 6
-- [ ] Verification of Phase 6 acceptance criteria:
-  - [ ] 1. Tools support both app documents and external PDFs
-  - [ ] 2. Password encryption locks PDF in third-party viewers; password removal unlocks
-  - [ ] 3. Compression reports accurate before/after size and output is readable
-  - [ ] 4. Signatures and watermarks can be placed and subsequently removed
-  - [ ] 5. Arabic watermark renders with correct ligature shaping and RTL order
-- [ ] Commit and tag `v0.6.0`
+- [x] Universal tool input picker (App document vs external PDF file via SAF)
+- [x] Output saving to `Documents/Abdul's Scanner/Tools/` with result action sheet
+- [x] PDF Merge tool (app docs & external PDF files via `PDFMergerUtility`)
+- [x] PDF Split tool (page extraction to app doc, or range extraction to external files)
+- [x] PDF Compression tool: Small, Medium, Large image re-encoding presets with size comparison
+- [x] PDF Watermark tool: custom text, Arabic RTL support, size, opacity, angle, color, single or tiled
+- [x] PDF Password tool: 256-bit AES encryption protection & password removal
+- [x] Signature feature: signature drawing pad, smoothing Bézier curves, save up to 5 signatures, draggable/resizable placement, overlay removal
+- [x] PDF Page Reorder tool for external PDF files
+- [x] PDF -> JPG tool: rasterize PDF pages to JPEG in Pictures
+- [x] Import Files tool: import external images or rasterize external PDF pages into new documents
+- [x] Web page -> PDF tool: URL input, WebView rendering, Android print adapter
+- [x] Build & tests for Phase 6
+- [x] Verification of Phase 6 acceptance criteria:
+  - [x] 1. Tools support both app documents and external PDFs
+  - [x] 2. Password encryption locks PDF in third-party viewers; password removal unlocks
+  - [x] 3. Compression reports accurate before/after size and output is readable
+  - [x] 4. Signatures and watermarks can be placed and subsequently removed
+  - [x] 5. Arabic watermark renders with correct ligature shaping and RTL order
+- [x] Commit and tag `v0.6.0`
 
 ---
 

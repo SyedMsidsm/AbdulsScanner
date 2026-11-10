@@ -112,7 +112,25 @@ object OverlayCompositor {
         val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = paintColor
             textSize = textSizePx
-            textAlign = Paint.Align.CENTER
+        }
+
+        val textWidth = (textPaint.measureText(watermark.text).roundToInt() + 50).coerceAtLeast(100)
+        val staticLayout = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            StaticLayout.Builder.obtain(watermark.text, 0, watermark.text.length, textPaint, textWidth)
+                .setAlignment(Layout.Alignment.ALIGN_CENTER)
+                .setIncludePad(false)
+                .build()
+        } else {
+            @Suppress("DEPRECATION")
+            StaticLayout(
+                watermark.text,
+                textPaint,
+                textWidth,
+                Layout.Alignment.ALIGN_CENTER,
+                1.0f,
+                0.0f,
+                false
+            )
         }
 
         canvas.save()
@@ -125,7 +143,8 @@ object OverlayCompositor {
                     canvas.save()
                     canvas.translate(x.toFloat(), y.toFloat())
                     canvas.rotate(-watermark.angle.toFloat())
-                    canvas.drawText(watermark.text, 0f, 0f, textPaint)
+                    canvas.translate(-staticLayout.width / 2f, -staticLayout.height / 2f)
+                    staticLayout.draw(canvas)
                     canvas.restore()
                 }
             }
@@ -133,7 +152,8 @@ object OverlayCompositor {
             // Single centred
             canvas.translate(width / 2f, height / 2f)
             canvas.rotate(-watermark.angle.toFloat())
-            canvas.drawText(watermark.text, 0f, 0f, textPaint)
+            canvas.translate(-staticLayout.width / 2f, -staticLayout.height / 2f)
+            staticLayout.draw(canvas)
         }
         canvas.restore()
     }
