@@ -62,6 +62,10 @@ class AppContainer(val context: Context) {
         )
     }
 
+    val sessionManager: com.syedmsidsm.abdulsscanner.domain.security.SessionManager by lazy {
+        com.syedmsidsm.abdulsscanner.domain.security.SessionManager()
+    }
+
     val saveScanUseCase: SaveScanUseCase by lazy {
         SaveScanUseCase(
             context = context,
@@ -69,6 +73,17 @@ class AppContainer(val context: Context) {
             fileStore = fileStore,
             mirrorStore = mirrorStore,
             pageRenderer = pageRenderer,
+            pdfBuilder = pdfBuilder,
+            settingsRepository = settingsRepository
+        )
+    }
+
+    val mergeDocumentsUseCase: com.syedmsidsm.abdulsscanner.domain.scan.MergeDocumentsUseCase by lazy {
+        com.syedmsidsm.abdulsscanner.domain.scan.MergeDocumentsUseCase(
+            context = context,
+            database = database,
+            fileStore = fileStore,
+            mirrorStore = mirrorStore,
             pdfBuilder = pdfBuilder,
             settingsRepository = settingsRepository
         )

@@ -4,6 +4,27 @@ All notable changes to **Abdul's Scanner** will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-10
+
+### Added
+- `PerspectiveCrop` interactive 4-point corner handle canvas crop view with normalized coordinates, real-time quad boundary lines, error indication on non-convex/self-intersecting quads, and magnifier loupe while dragging.
+- `Filters` & `AdaptiveThreshold`: Original, Enhanced auto-levels, Grayscale, Bradley-Roth B&W filters with non-destructive source photo preservation.
+- Brightness (-100..100) and Contrast (-100..100) adjust panel with real-time preview and reset option.
+- Page viewer editing toolbar: Crop, Rotate (+90°), Adjust, Retake (single page via ML Kit scanner), and Delete with undo snackbar.
+- Reorder pages mode on Document screen with swap navigation and automatic PDF regeneration in background.
+- Tags management: `TagsScreen` & `TagsViewModel` with alphabetical grouping, document counts, create, rename, and delete actions; document tag bottom sheet; Home tag filter dropdown with Ungrouped and per-tag filters.
+- Home multi-select mode: top bar with selected count and Select/Deselect all; bottom action bar for multi-tagging, sharing multiple PDFs, multi-doc lock, and multi-doc trash.
+- `MergeDocumentsUseCase`: combines pages from 2+ documents into a new document with atomic file copies, database transaction, and PDF build.
+- App PIN & Biometric security: `PinHasher` (PBKDF2WithHmacSHA256, 120,000 iterations, 16-byte salt), `SessionManager` locking on `ON_STOP` lifecycle events, `LockScreen` with `FLAG_SECURE` window protection, biometric prompt, and device credential fallback.
+- `SecuritySettingsScreen`: Set PIN, Change PIN, Remove PIN, Fingerprint toggle, and unencrypted backup warning.
+- Document options: Page size selector (Auto, A4, Letter), Export JPGs to `Pictures/Abdul's Scanner/` via `MediaStoreExporter`, and Print via `PrintManager` and `PdfPrintAdapter`.
+- Unit tests in `PinHasherTest` covering key generation, verification, wrong password rejection, and salt formatting.
+
+### Decisions
+- Standardized on `java.util.Base64` for PIN salt encoding and decoding to allow headless JVM test execution on Android API 26+.
+- Document locked state blurs thumbnails on Home and in search previews to prevent leaking confidential information before authentication.
+- Page reorder mode provides explicit previous/next swap buttons ensuring accessible, deterministic page rearrangement.
+
 ## [0.2.0] - 2026-11-10
 
 ### Added

@@ -154,6 +154,51 @@ class DocumentRepository(
         }
     }
 
+    suspend fun updatePage(
+        page: PageEntity,
+        pageRenderer: com.syedmsidsm.abdulsscanner.domain.imaging.PageRenderer
+    ) = withContext(Dispatchers.IO) {
+        pageRenderer.renderPage(page)
+        pageDao.update(page)
+        val doc = documentDao.getById(page.documentId)
+        if (doc != null) {
+            documentDao.update(doc.copy(updatedAt = System.currentTimeMillis()))
+            rebuildPdf(page.documentId)
+        }
+    }
+
+    suspend fun retakePage(
+        documentId: String,
+        pageId: String,
+        newSourceFile: File,
+        pageRenderer: com.syedmsidsm.abdulsscanner.domain.imaging.PageRenderer
+    ) = withContext(Dispatchers.IO) {
+        val page = pageDao.getById(pageId) ?: return@withContext
+        val srcFile = fileStore.getPageSrcFile(documentId, pageId)
+        fileStore.writeAtomically(srcFile) { fos ->
+            newSourceFile.inputStream().use { it.copyTo(fos) }
+        }
+
+        // Reset cropQuad and rotation, keep filter and adjustments
+        val updated = page.copy(
+            cropQuad = null,
+            rotation = 0,
+            ocrStatus = com.syedmsidsm.abdulsscanner.data.db.entity.OcrStatus.PENDING.name
+        )
+        pageRenderer.renderPage(updated)
+        pageDao.update(updated)
+        val doc = documentDao.getById(documentId)
+        if (doc != null) {
+            documentDao.update(doc.copy(updatedAt = System.currentTimeMillis()))
+            rebuildPdf(documentId)
+        }
+    }
+
+    suspend fun setPageSize(documentId: String, pageSize: String) = withContext(Dispatchers.IO) {
+        documentDao.setPageSize(documentId, pageSize)
+        rebuildPdf(documentId)
+    }
+
     suspend fun rebuildPdf(documentId: String) = withContext(Dispatchers.IO) {
         val doc = documentDao.getById(documentId) ?: return@withContext
         val pages = pageDao.getByDocumentId(documentId)

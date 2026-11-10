@@ -15,7 +15,7 @@ class PageRenderer(private val fileStore: FileStore) {
     private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun renderPage(page: PageEntity): Pair<Int, Int> = withContext(Dispatchers.Default) {
-        val srcFile = File(fileStore.filesDir, page.sourcePath)
+        val srcFile = if (File(page.sourcePath).isAbsolute) File(page.sourcePath) else File(fileStore.filesDir, page.sourcePath)
         require(srcFile.exists()) { "Source file not found at ${srcFile.absolutePath}" }
 
         // 1. Decode source image
@@ -101,14 +101,14 @@ class PageRenderer(private val fileStore: FileStore) {
         val outH = currentBitmap.height
 
         // 7. Encode rendered image (JPEG quality 90) atomically
-        val renderedFile = File(fileStore.filesDir, page.renderedPath)
+        val renderedFile = if (File(page.renderedPath).isAbsolute) File(page.renderedPath) else File(fileStore.filesDir, page.renderedPath)
         fileStore.writeAtomically(renderedFile) { fos ->
             currentBitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
             fos.flush()
         }
 
         // 8. Generate thumbnail (360px on long side, quality 80) atomically
-        val thumbFile = File(fileStore.filesDir, page.thumbPath)
+        val thumbFile = if (File(page.thumbPath).isAbsolute) File(page.thumbPath) else File(fileStore.filesDir, page.thumbPath)
         val tempThumb = fileStore.createTempFile(prefix = "thumb_", suffix = ".jpg")
         BitmapIo.createThumbnail(currentBitmap, tempThumb, targetLongSide = 360, quality = 80)
         fileStore.writeAtomically(thumbFile) { fos ->

@@ -32,6 +32,7 @@ class DocumentViewModel(
     private val saveScanUseCase: SaveScanUseCase
 ) : ViewModel() {
 
+    val allTags = tagRepository.observeAllTags()
     private val _isUpdatingPdf = MutableStateFlow(false)
     private val _isAddingPages = MutableStateFlow(false)
 
@@ -50,6 +51,51 @@ class DocumentViewModel(
             isAddingPages = addingPages
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DocumentUiState())
+
+    fun reorderPages(pageIdsInOrder: List<String>) {
+        viewModelScope.launch {
+            _isUpdatingPdf.value = true
+            try {
+                documentRepository.reorderPages(docId, pageIdsInOrder)
+            } finally {
+                _isUpdatingPdf.value = false
+            }
+        }
+    }
+
+    fun setTags(tagIds: Set<Long>) {
+        viewModelScope.launch {
+            tagRepository.setTagsForDocument(docId, tagIds)
+        }
+    }
+
+    fun createTagAndAssign(name: String) {
+        viewModelScope.launch {
+            val newTagId = tagRepository.createTag(name)
+            if (newTagId > 0) {
+                val currentTagIds = uiState.value.tags.map { it.id }.toSet()
+                tagRepository.setTagsForDocument(docId, currentTagIds + newTagId)
+            }
+        }
+    }
+
+    fun setPageSize(pageSize: String) {
+        viewModelScope.launch {
+            _isUpdatingPdf.value = true
+            try {
+                documentRepository.setPageSize(docId, pageSize)
+            } finally {
+                _isUpdatingPdf.value = false
+            }
+        }
+    }
+
+    fun toggleLock() {
+        val currentDoc = uiState.value.document ?: return
+        viewModelScope.launch {
+            documentRepository.setLocked(docId, !currentDoc.locked)
+        }
+    }
 
     fun rename(newName: String) {
         viewModelScope.launch {

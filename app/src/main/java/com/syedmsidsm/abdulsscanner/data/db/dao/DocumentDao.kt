@@ -98,6 +98,9 @@ interface DocumentDao {
     @Query("UPDATE documents SET locked = :locked, updatedAt = :updatedAt WHERE id = :id")
     suspend fun setLocked(id: String, locked: Boolean, updatedAt: Long = System.currentTimeMillis())
 
+    @Query("UPDATE documents SET pageSize = :pageSize, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun setPageSize(id: String, pageSize: String, updatedAt: Long = System.currentTimeMillis())
+
     @Query("UPDATE documents SET mirrorUri = :mirrorUri WHERE id = :id")
     suspend fun updateMirrorUri(id: String, mirrorUri: String?)
 

@@ -26,18 +26,24 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.CallMerge
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Label
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Sort
 import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -45,18 +51,25 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,20 +96,27 @@ import com.syedmsidsm.abdulsscanner.ui.nav.Routes
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
+    isSessionUnlocked: Boolean = false,
     onNavigateToDocument: (String) -> Unit,
+    onNavigateToLock: (String) -> Unit = {},
     onNavigateToTools: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToBackup: () -> Unit = {},
     onNavigateToTags: () -> Unit,
-    onSharePdf: (DocumentEntity) -> Unit
+    onSharePdf: (DocumentEntity) -> Unit,
+    onShareMultiplePdfs: (List<DocumentEntity>) -> Unit = {}
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     val uiState by viewModel.uiState.collectAsState()
 
     var docToRename by remember { mutableStateOf<DocumentEntity?>(null) }
     var renameText by remember { mutableStateOf("") }
     var showTagDropdown by remember { mutableStateOf(false) }
     var showSortDropdown by remember { mutableStateOf(false) }
+    var showSelectTagSheet by remember { mutableStateOf(false) }
+    var chosenTagIdsForSelection by remember { mutableStateOf(setOf<Long>()) }
     var scannerErrorMsg by remember { mutableStateOf<String?>(null) }
 
     // Scanner Activity Result Launcher
@@ -134,54 +154,219 @@ fun HomeScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = {
-                    if (uiState.isSearchActive) {
-                        OutlinedTextField(
-                            value = uiState.searchQuery,
-                            onValueChange = { viewModel.onSearchQueryChanged(it) },
-                            placeholder = { Text(stringResource(R.string.action_search)) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    } else {
+            if (uiState.isSelectMode) {
+                TopAppBar(
+                    title = {
                         Text(
-                            text = stringResource(R.string.app_name),
+                            text = "${uiState.selectedDocIds.size} selected",
                             fontWeight = FontWeight.Bold
                         )
-                    }
-                },
-                navigationIcon = {
-                    if (uiState.isSearchActive) {
-                        IconButton(onClick = { viewModel.setSearchActive(false) }) {
-                            Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.action_cancel))
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.toggleSelectMode() }) {
+                            Icon(Icons.Outlined.Close, contentDescription = "Exit select mode")
                         }
-                    } else {
-                        IconButton(onClick = onNavigateToSettings) {
-                            Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.action_settings))
+                    },
+                    actions = {
+                        val allSelected = uiState.selectedDocIds.size == uiState.documents.size && uiState.documents.isNotEmpty()
+                        TextButton(
+                            onClick = {
+                                if (allSelected) viewModel.clearSelection() else viewModel.selectAll()
+                            }
+                        ) {
+                            Text(if (allSelected) "Deselect all" else "Select all")
                         }
-                    }
-                },
-                actions = {
-                    if (!uiState.isSearchActive) {
-                        IconButton(onClick = { viewModel.setSearchActive(true) }) {
-                            Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.action_search))
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
                 )
-            )
+            } else {
+                TopAppBar(
+                    title = {
+                        if (uiState.isSearchActive) {
+                            OutlinedTextField(
+                                value = uiState.searchQuery,
+                                onValueChange = { viewModel.onSearchQueryChanged(it) },
+                                placeholder = { Text(stringResource(R.string.action_search)) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        } else {
+                            Text(
+                                text = stringResource(R.string.app_name),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    },
+                    navigationIcon = {
+                        if (uiState.isSearchActive) {
+                            IconButton(onClick = { viewModel.setSearchActive(false) }) {
+                                Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.action_cancel))
+                            }
+                        } else {
+                            IconButton(onClick = onNavigateToSettings) {
+                                Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.action_settings))
+                            }
+                        }
+                    },
+                    actions = {
+                        if (!uiState.isSearchActive) {
+                            IconButton(onClick = { viewModel.setSearchActive(true) }) {
+                                Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.action_search))
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
+                )
+            }
         },
         bottomBar = {
-            AppBottomBar(
-                currentRoute = Routes.HOME,
-                onNavigateToDocs = {},
-                onNavigateToTools = onNavigateToTools,
-                onCameraClick = { launchScanner() }
-            )
+            if (uiState.isSelectMode) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 8.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val hasSelection = uiState.selectedDocIds.isNotEmpty()
+                        val canMerge = uiState.selectedDocIds.size >= 2
+
+                        // Tag
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable(enabled = hasSelection) {
+                                    chosenTagIdsForSelection = emptySet()
+                                    showSelectTagSheet = true
+                                }
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                Icons.Outlined.Label,
+                                contentDescription = "Tag",
+                                tint = if (hasSelection) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            )
+                            Text(
+                                "Tag",
+                                fontSize = 12.sp,
+                                color = if (hasSelection) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            )
+                        }
+
+                        // Share
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable(enabled = hasSelection) {
+                                    val selectedDocs = uiState.documents.filter { it.id in uiState.selectedDocIds }
+                                    if (selectedDocs.size == 1) {
+                                        onSharePdf(selectedDocs.first())
+                                    } else if (selectedDocs.size > 1) {
+                                        onShareMultiplePdfs(selectedDocs)
+                                    }
+                                }
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                Icons.Outlined.Share,
+                                contentDescription = "Share",
+                                tint = if (hasSelection) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            )
+                            Text(
+                                "Share",
+                                fontSize = 12.sp,
+                                color = if (hasSelection) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            )
+                        }
+
+                        // Merge
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable(enabled = canMerge) {
+                                    viewModel.mergeSelected { newDocId ->
+                                        onNavigateToDocument(newDocId)
+                                    }
+                                }
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Outlined.CallMerge,
+                                contentDescription = "Merge",
+                                tint = if (canMerge) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            )
+                            Text(
+                                "Merge",
+                                fontSize = 12.sp,
+                                color = if (canMerge) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            )
+                        }
+
+                        // Lock
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable(enabled = hasSelection) { viewModel.toggleLockSelected() }
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                Icons.Outlined.Lock,
+                                contentDescription = "Lock",
+                                tint = if (hasSelection) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            )
+                            Text(
+                                "Lock",
+                                fontSize = 12.sp,
+                                color = if (hasSelection) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            )
+                        }
+
+                        // Delete
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable(enabled = hasSelection) {
+                                    viewModel.moveSelectedToTrash()
+                                }
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                Icons.Outlined.Delete,
+                                contentDescription = "Delete",
+                                tint = if (hasSelection) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            )
+                            Text(
+                                "Delete",
+                                fontSize = 12.sp,
+                                color = if (hasSelection) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            )
+                        }
+                    }
+                }
+            } else {
+                AppBottomBar(
+                    currentRoute = Routes.HOME,
+                    onNavigateToDocs = {},
+                    onNavigateToTools = onNavigateToTools,
+                    onCameraClick = { launchScanner() }
+                )
+            }
         }
     ) { padding ->
         Box(
@@ -424,7 +609,11 @@ fun HomeScreen(
                                         if (uiState.isSelectMode) {
                                             viewModel.toggleDocSelection(doc.id)
                                         } else {
-                                            onNavigateToDocument(doc.id)
+                                            if (doc.locked && !isSessionUnlocked) {
+                                                onNavigateToLock(doc.id)
+                                            } else {
+                                                onNavigateToDocument(doc.id)
+                                            }
                                         }
                                     },
                                     onLongClick = {
@@ -460,7 +649,11 @@ fun HomeScreen(
                                         if (uiState.isSelectMode) {
                                             viewModel.toggleDocSelection(doc.id)
                                         } else {
-                                            onNavigateToDocument(doc.id)
+                                            if (doc.locked && !isSessionUnlocked) {
+                                                onNavigateToLock(doc.id)
+                                            } else {
+                                                onNavigateToDocument(doc.id)
+                                            }
                                         }
                                     },
                                     onLongClick = {
@@ -550,5 +743,83 @@ fun HomeScreen(
                 }
             }
         )
+    }
+
+    // Apply Tags Modal Bottom Sheet
+    if (showSelectTagSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showSelectTagSheet = false },
+            sheetState = rememberModalBottomSheetState()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+            ) {
+                Text(
+                    text = "Apply Tags",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                if (uiState.tagsWithCounts.isEmpty()) {
+                    Text(
+                        "No tags yet. Go to Manage Tags to create some.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    uiState.tagsWithCounts.forEach { tag ->
+                        val isChecked = chosenTagIdsForSelection.contains(tag.id)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable {
+                                    chosenTagIdsForSelection = if (isChecked) {
+                                        chosenTagIdsForSelection - tag.id
+                                    } else {
+                                        chosenTagIdsForSelection + tag.id
+                                    }
+                                }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = isChecked,
+                                onCheckedChange = { checked ->
+                                    chosenTagIdsForSelection = if (checked) {
+                                        chosenTagIdsForSelection + tag.id
+                                    } else {
+                                        chosenTagIdsForSelection - tag.id
+                                    }
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(tag.name, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = { showSelectTagSheet = false }) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            viewModel.applyTagsToSelected(chosenTagIdsForSelection)
+                            showSelectTagSheet = false
+                        }
+                    ) {
+                        Text(stringResource(R.string.action_save))
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
     }
 }

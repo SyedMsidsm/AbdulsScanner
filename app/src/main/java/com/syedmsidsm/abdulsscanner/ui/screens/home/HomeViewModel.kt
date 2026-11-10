@@ -12,6 +12,7 @@ import com.syedmsidsm.abdulsscanner.data.repo.TagRepository
 import com.syedmsidsm.abdulsscanner.data.settings.SettingsRepository
 import com.syedmsidsm.abdulsscanner.data.settings.SortOrder
 import com.syedmsidsm.abdulsscanner.data.settings.ViewMode
+import com.syedmsidsm.abdulsscanner.domain.scan.MergeDocumentsUseCase
 import com.syedmsidsm.abdulsscanner.domain.scan.SaveScanUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,7 +77,8 @@ class HomeViewModel(
     private val tagRepository: TagRepository,
     private val searchRepository: SearchRepository,
     private val settingsRepository: SettingsRepository,
-    private val saveScanUseCase: SaveScanUseCase
+    private val saveScanUseCase: SaveScanUseCase,
+    private val mergeDocumentsUseCase: MergeDocumentsUseCase
 ) : ViewModel() {
 
     private val _selectedTagId = MutableStateFlow<Long?>(null)
@@ -226,6 +228,60 @@ class HomeViewModel(
         _selectedDocIds.value = current
     }
 
+    fun selectAll() {
+        _selectedDocIds.value = uiState.value.documents.map { it.id }.toSet()
+    }
+
+    fun clearSelection() {
+        _selectedDocIds.value = emptySet()
+    }
+
+    fun moveSelectedToTrash() {
+        val ids = _selectedDocIds.value.toList()
+        viewModelScope.launch {
+            for (id in ids) {
+                documentRepository.moveToTrash(id)
+            }
+            toggleSelectMode()
+        }
+    }
+
+    fun toggleLockSelected() {
+        val selectedDocs = uiState.value.documents.filter { it.id in _selectedDocIds.value }
+        val shouldLock = selectedDocs.any { !it.locked }
+        viewModelScope.launch {
+            for (doc in selectedDocs) {
+                documentRepository.setLocked(doc.id, shouldLock)
+            }
+            toggleSelectMode()
+        }
+    }
+
+    fun applyTagsToSelected(tagIds: Set<Long>) {
+        val ids = _selectedDocIds.value.toList()
+        viewModelScope.launch {
+            for (docId in ids) {
+                tagRepository.setTagsForDocument(docId, tagIds)
+            }
+            toggleSelectMode()
+        }
+    }
+
+    fun mergeSelected(onMerged: (String) -> Unit) {
+        val ids = _selectedDocIds.value.toList()
+        if (ids.size < 2) return
+        viewModelScope.launch {
+            _isSavingScan.value = true
+            try {
+                val newDocId = mergeDocumentsUseCase.mergeDocuments(ids)
+                toggleSelectMode()
+                onMerged(newDocId)
+            } finally {
+                _isSavingScan.value = false
+            }
+        }
+    }
+
     fun renameDocument(docId: String, newName: String) {
         viewModelScope.launch {
             documentRepository.rename(docId, newName)
@@ -257,7 +313,8 @@ class HomeViewModel(
             tagRepository: TagRepository,
             searchRepository: SearchRepository,
             settingsRepository: SettingsRepository,
-            saveScanUseCase: SaveScanUseCase
+            saveScanUseCase: SaveScanUseCase,
+            mergeDocumentsUseCase: MergeDocumentsUseCase
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -266,7 +323,8 @@ class HomeViewModel(
                     tagRepository,
                     searchRepository,
                     settingsRepository,
-                    saveScanUseCase
+                    saveScanUseCase,
+                    mergeDocumentsUseCase
                 ) as T
             }
         }

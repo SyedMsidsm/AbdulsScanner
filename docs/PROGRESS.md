@@ -77,28 +77,28 @@ Legend:
 ---
 
 ## Phase 3 — Editing and organising
-- [ ] `PerspectiveCrop`: 4-point corner handles, magnifier loupe, self-intersection rejection
-- [ ] `Filters` & `AdaptiveThreshold`: Original, Enhanced auto-levels, Grayscale, Bradley-Roth B&W
-- [ ] Brightness (-100..100) and Contrast (-100..100) color adjustments
-- [ ] Page viewer editing toolbar: Crop, Rotate (+90°), Adjust, Retake, Delete with undo snackbar
-- [ ] Page reorder mode on Document screen (drag to reorder)
-- [ ] Tags system: Tags management screen (alphabetical grouping, counts, rename, delete), tag bottom sheet on Document, Home tag filter dropdown (All, Ungrouped, per-tag)
-- [ ] Home sort order (Updated, Created, Name)
-- [ ] Home list/grid view toggle
-- [ ] Home select mode (multi-select: tags, share, merge, lock, delete)
-- [ ] Merge documents use case (combine pages into new document)
-- [ ] PIN lock security: `PinHasher` (PBKDF2), PIN setup/change/verify, session timeout on app background, biometric prompt, forgot PIN via device lock, FLAG_SECURE on locked screens
-- [ ] Settings: Scanning, PDF, Security, Appearance (Light/Dark/System theme)
-- [ ] Document actions: Export JPG to Pictures, Print via PrintManager, Page size (Auto/A4/Letter)
-- [ ] Build & tests for Phase 3
-- [ ] Verification of Phase 3 acceptance criteria:
-  - [ ] 1. Edits are non-destructive and reversible
-  - [ ] 2. Reordering pages updates generated PDF order
-  - [ ] 3. Tags filter Home correctly; deleting tag retains documents
-  - [ ] 4. Locked document blurred on Home, requires auth, hidden from mirror/search
-  - [ ] 5. Forgot PIN resets via device credential
-  - [ ] 6. Multi-select merge produces combined document
-- [ ] Commit and tag `v0.3.0`
+- [x] `PerspectiveCrop`: 4-point corner handles, magnifier loupe, self-intersection rejection
+- [x] `Filters` & `AdaptiveThreshold`: Original, Enhanced auto-levels, Grayscale, Bradley-Roth B&W
+- [x] Brightness (-100..100) and Contrast (-100..100) color adjustments
+- [x] Page viewer editing toolbar: Crop, Rotate (+90°), Adjust, Retake, Delete with undo snackbar
+- [x] Page reorder mode on Document screen (drag/swap to reorder)
+- [x] Tags system: Tags management screen (alphabetical grouping, counts, rename, delete), tag bottom sheet on Document, Home tag filter dropdown (All, Ungrouped, per-tag)
+- [x] Home sort order (Updated, Created, Name)
+- [x] Home list/grid view toggle
+- [x] Home select mode (multi-select: tags, share, merge, lock, delete)
+- [x] Merge documents use case (combine pages into new document)
+- [x] PIN lock security: `PinHasher` (PBKDF2), PIN setup/change/verify, session timeout on app background, biometric prompt, forgot PIN via device lock, FLAG_SECURE on locked screens
+- [x] Settings: Scanning, PDF, Security, Appearance (Light/Dark/System theme)
+- [x] Document actions: Export JPG to Pictures, Print via PrintManager, Page size (Auto/A4/Letter)
+- [x] Build & tests for Phase 3
+- [x] Verification of Phase 3 acceptance criteria:
+  - [x] 1. Edits are non-destructive and reversible
+  - [x] 2. Reordering pages updates generated PDF order
+  - [x] 3. Tags filter Home correctly; deleting tag retains documents
+  - [x] 4. Locked document blurred on Home, requires auth, hidden from mirror/search
+  - [x] 5. Forgot PIN resets via device credential
+  - [x] 6. Multi-select merge produces combined document
+- [x] Commit and tag `v0.3.0`
 
 ---
 

@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Info
@@ -62,7 +63,8 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToBackup: () -> Unit,
     onNavigateToTrash: () -> Unit,
-    onNavigateToLabs: () -> Unit
+    onNavigateToLabs: () -> Unit,
+    onNavigateToSecurity: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -116,6 +118,13 @@ fun SettingsScreen(
                         title = "Recycle Bin",
                         subtitle = "Deleted documents are kept for 30 days",
                         onClick = onNavigateToTrash
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    SettingsRow(
+                        icon = Icons.Outlined.Lock,
+                        title = "Security & Privacy",
+                        subtitle = "App PIN, fingerprint unlock",
+                        onClick = onNavigateToSecurity
                     )
                 }
             }

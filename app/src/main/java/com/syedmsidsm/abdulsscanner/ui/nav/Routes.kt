@@ -31,8 +31,10 @@ object Routes {
     const val SETTINGS_TRASH = "settings/trash"
     const val SETTINGS_SECURITY = "settings/security"
     const val LABS_ARABIC_OCR = "labs/arabic-ocr"
+    const val LOCK = "lock/{docId}"
 
     fun document(docId: String) = "document/$docId"
+    fun lock(docId: String) = "lock/$docId"
     fun pageViewer(docId: String, pageId: String) = "page/$docId/$pageId"
     fun ocr(docId: String, pageIds: String = "") = "ocr/$docId?pages=$pageIds"
     fun book(docId: String) = "book/$docId"
