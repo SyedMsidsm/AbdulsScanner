@@ -435,58 +435,16 @@ fun DocumentScreen(
         )
     }
 
-    // Share Sheet
+    // Share Sheet (Section 7)
     if (showShareSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showShareSheet = false },
-            sheetState = rememberModalBottomSheetState()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.action_share_pdf),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small)
-                        .clickable {
-                            showShareSheet = false
-                            onSharePdf(doc)
-                        }
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Outlined.Description, null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(stringResource(R.string.action_share_pdf), style = MaterialTheme.typography.bodyLarge)
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small)
-                        .clickable {
-                            showShareSheet = false
-                            onShareJpg(doc)
-                        }
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Outlined.Image, null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(stringResource(R.string.action_share_jpg), style = MaterialTheme.typography.bodyLarge)
-                }
-                Spacer(modifier = Modifier.height(24.dp))
-            }
-        }
+        DocumentShareSheet(
+            doc = doc,
+            pages = uiState.pages,
+            fileStore = fileStore,
+            onDismiss = { showShareSheet = false },
+            onSharePdf = { onSharePdf(doc) },
+            onShareJpg = { onShareJpg(doc) }
+        )
     }
 
     // Add Pages Sheet

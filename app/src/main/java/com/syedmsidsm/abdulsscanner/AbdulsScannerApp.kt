@@ -12,6 +12,7 @@ class AbdulsScannerApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        com.syedmsidsm.abdulsscanner.domain.safety.CrashLogger.install(this)
         container = AppContainer(this)
         PDFBoxResourceLoader.init(this)
         try {

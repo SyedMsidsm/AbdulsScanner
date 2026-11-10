@@ -2,6 +2,66 @@
 
 All notable changes to **Abul's Scanner** will be documented in this file.
 
+## [1.0.1] - 2026-11-10
+
+### Fixed
+- **Root Cause & Resolution of "Next Closes App" Bug**:
+  - *Root Cause Analysis*:
+    1. In `CameraScreen.kt`, the previous crop view was rendered via an early return (`if (cropScan != null) { CropAfterScanView(...); return }`), which unmounted the Compose `AndroidView(PreviewView)` and triggered `cameraProvider?.unbindAll()`. When **Next page** was tapped, setting `cropScan = null` recomposed the camera view, attempting to immediately rebind CameraX use cases on the main thread while simultaneously decoding full-resolution bitmaps. This created a race condition with CameraX surface lifecycles and navigation backstacks, causing the activity to finish or pop to the home screen.
+    2. Missing isolated back-press handling inside `CropAfterScanView` caused hardware or gesture Back events to pop the entire `CameraScreen` destination, discarding the scan immediately.
+    3. State was held purely in transient Compose memory; rotation or app backgrounding caused state loss.
+  - *Fix Implemented*:
+    1. Replaced fragile in-memory state with a resilient `ScanSession` state machine backed by atomic disk persistence (`cacheDir/scan-session/{sessionId}/session.json`). IDs and file paths are stored on disk; bitmaps are never passed through navigation arguments or saved instance state.
+    2. Scoped `ScanSessionViewModel` to the `scan_flow` navigation graph so state is preserved seamlessly across Camera, Crop, and Review screens.
+    3. Retained CameraX use cases continuously in the background during active cropping by rendering `CropAfterScanView` as an overlay, eliminating camera re-bind latency and unmount races.
+    4. Added back-press confirmation dialogs ("Discard this photo?" in crop; "Save n pages?" in camera) preventing accidental scan loss.
+    5. Added startup recovery dialog on Home screen ("Unfinished scan found", `fix-05-recover-session.png`) offering to continue scanning or discard, plus automated 7-day silent purge of orphan sessions.
+
+- **Auto-Crop Failure & Page Detection**:
+  - Auto-crop was previously failing to run on captured photos and falling back to a fixed 5% inset rectangle.
+  - Implemented a 1:1 Kotlin port of OpenCV `reference_detect.py` in `PageDetector.kt`:
+    - Scales image to 1000 px max side, generates 4 candidate binary masks (`edges` via Canny 50/150, `edges_lo` with CLAHE, `bright` via Otsu, and `paper` via Otsu + HSV low-saturation filter).
+    - Extracts convex contours, computes polygon vertices via `approxPolyDP` and intersects the 4 longest edge lines.
+    - Applies strict rejection rules: area < 15%, non-convexity, corner angles outside 45°–135°, border hits >= 3, and paperness < 50%.
+    - Scores candidates via `area fraction * fill^2 * paperness^2`.
+    - If no page is detected, falls back cleanly to the full photo bounds (`(0,0)` to `(1,1)`) with a 3-second fading pill ("Couldn't find the page edges; you can drag the corners yourself").
+  - Instrumented golden tests (`PageDetectorGoldenTest`): all 7 test scenes in `detect-tests/` verified on a physical Samsung Galaxy S24 Ultra, passing within required 2.5% diagonal error thresholds (scene 07 correctly returns null).
+
+- **Crop Screen Magnifier Bug**:
+  - The magnifier previously drew a solid green circle without the photo content.
+  - Fixed to render an authentic 116 dp circular loupe with 3 dp white border and drop shadow, zoomed 2.6× around the touch position using Compose `Canvas` with `drawImage` and matrix clipping.
+  - Displays a centered white crosshair and the two green polygon edges exiting the dragged corner.
+  - Dynamically repositions away from the touching finger (switches from top-left to top-right when the finger enters the top-left quadrant).
+
+- **Crop Screen Layout Squashing & Inset Overlaps**:
+  - Top title ("Page n · adjust crop") previously overlapped the Android status bar, and bottom buttons collapsed into an empty vertical bar.
+  - Fixed with edge-to-edge `WindowInsets.statusBarsPadding()` and `navigationBarsPadding()`.
+  - Image preview bounds are clamped inside the safe area so handles remain accessible.
+  - Rebuilt bottom bar into two distinct rows:
+    - Row 1: **Retake** (tonal button, icon + text), 10 dp gap, **Rotate** (icon-only tonal button), spacer, and **Next page →** (filled primary button).
+    - Row 2: Centered text button **Done (n pages)**.
+
+### Added
+- **Review & Filter Screen (`ReviewFilterScreen`)**:
+  - Matches `mockups/fix-03-review-filters.png`.
+  - Top bar with Back to camera (pages kept), title "Review · {n} pages", and filled **Done** button.
+  - Horizontal page carousel displaying ≤ 2048 px cropped, rotated, and filtered previews with "n / total" indicator.
+  - 7 live filter thumbnail previews with an "Apply filter to all pages" switch (default ON).
+  - Bottom action bar: Crop (reopens crop in edit mode with Cancel/Apply), Rotate (+90°), Retake (captures replacement photo and returns to Review), Add (appends pages from Camera or Gallery), and Delete (with undo snackbar; deleting last page prompts to discard scan).
+  - **Done** button executes background save via `SaveScanUseCase.saveScanSession`, generating the document and mirrored PDF, and opens the Document screen.
+
+- **Crash Logger (`CrashLogger`)**:
+  - Global uncaught exception handler in `AbdulsScannerApp.onCreate()` recording stack traces, device model, Android version, and app version to local `filesDir/crash/last-crash.txt` (rotated across last 3 logs).
+  - Added **"Copy last crash report"** and **"Share last crash report"** under Settings → About with user toast feedback. Fully private and offline (no external network transmission).
+
+- **Share Sheet Enhancements**:
+  - Displays dynamic file sizes for PDF and JPG options.
+  - Added **"Share as long image"** (`LongImageStitcher`): vertically stacks cropped pages at narrowest page width (max 1600 px, 24 px white separators, max 20,000 px height, JPEG quality 85).
+  - Added **"Save to Gallery"**: saves rendered pages directly into `Pictures/Abul's Scanner` via Android `MediaStore`.
+
+- **Automated Multi-Page UI Test (`MultiPageScanFlowTest`)**:
+  - Verifies multi-page capture flow (Next -> Next -> Done), 3-page review state, rotation, filter application, crop updates, atomic disk session persistence, and final document persistence on a connected Samsung Galaxy S24 Ultra.
+
 ## [1.0.0] - 2026-11-10
 
 ### Added

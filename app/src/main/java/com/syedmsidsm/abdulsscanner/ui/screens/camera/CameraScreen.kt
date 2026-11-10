@@ -72,6 +72,7 @@ import androidx.compose.material.icons.outlined.GridOn
 import androidx.compose.material.icons.outlined.Hd
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -85,9 +86,11 @@ import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -124,14 +127,21 @@ import com.syedmsidsm.abdulsscanner.domain.imaging.DetectionResult
 import com.syedmsidsm.abdulsscanner.domain.imaging.DetectionStatus
 import com.syedmsidsm.abdulsscanner.domain.imaging.DocumentDetector
 import com.syedmsidsm.abdulsscanner.domain.imaging.Filters
+import com.syedmsidsm.abdulsscanner.domain.imaging.PageDetector
 import com.syedmsidsm.abdulsscanner.domain.imaging.Quad
 import com.syedmsidsm.abdulsscanner.domain.scan.CameraCaptureItem
+import com.syedmsidsm.abdulsscanner.domain.scan.ScanSession
 import com.syedmsidsm.abdulsscanner.domain.scan.special.IdCardLayout
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.opencv.android.Utils
+import org.opencv.core.Mat
+import org.opencv.imgproc.Imgproc
 import java.io.File
+import java.util.UUID
 import java.util.concurrent.Executors
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -156,6 +166,7 @@ enum class CameraPopup {
 data class CropScanState(
     val file: File,
     val initialQuad: Quad?,
+    val autoCropSuccess: Boolean = true,
     val pageNumber: Int
 )
 
@@ -164,8 +175,11 @@ fun CameraScreen(
     container: AppContainer,
     initialMode: CameraScanMode = CameraScanMode.DOCS,
     targetDocId: String? = null,
+    retakePageId: String? = null,
+    sessionViewModel: ScanSessionViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToDocument: (String) -> Unit,
+    onNavigateToReview: () -> Unit,
     onNavigateToBookSplit: (docId: String, pageId: String) -> Unit,
     onNavigateToOcr: (docId: String) -> Unit,
     onNavigateToQrResult: (qrId: Long, raw: String) -> Unit,
@@ -258,6 +272,63 @@ fun CameraScreen(
     var lastAutoCaptureTime by remember { mutableLongStateOf(0L) }
     var lastCapturedAnchorQuad by remember { mutableStateOf<Quad?>(null) }
 
+    // Session and Crop states
+    val session by sessionViewModel.session.collectAsState()
+    var activeCropScan by remember { mutableStateOf<CropScanState?>(null) }
+    var lastCapturedThumbnail by remember { mutableStateOf<Bitmap?>(null) }
+    var showContinuePill by remember { mutableStateOf(false) }
+    var showExitCameraDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showContinuePill) {
+        if (showContinuePill) {
+            delay(3000)
+            showContinuePill = false
+        }
+    }
+
+    BackHandler(enabled = activeCropScan == null) {
+        if (session.pages.isEmpty()) {
+            onNavigateBack()
+        } else {
+            showExitCameraDialog = true
+        }
+    }
+
+    if (showExitCameraDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitCameraDialog = false },
+            title = { Text("Save ${session.pages.size} ${if (session.pages.size == 1) "page" else "pages"}?") },
+            text = { Text("You have scanned pages. Do you want to review and save them, or discard them?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showExitCameraDialog = false
+                        onNavigateToReview()
+                    }
+                ) {
+                    Text("Save", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            showExitCameraDialog = false
+                            sessionViewModel.discardSession()
+                            onNavigateBack()
+                        }
+                    ) {
+                        Text("Discard", color = MaterialTheme.colorScheme.error)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = { showExitCameraDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        )
+    }
+
     // ID Card state
     var idCardFrontFile by remember { mutableStateOf<File?>(null) }
 
@@ -266,10 +337,6 @@ fun CameraScreen(
 
     // Batch captures when "Crop images after each scan" is OFF
     var batchCaptures by remember { mutableStateOf<List<CameraCaptureItem>>(emptyList()) }
-    var lastCapturedThumbnail by remember { mutableStateOf<Bitmap?>(null) }
-
-    // Crop After Each Scan State
-    var activeCropScan by remember { mutableStateOf<CropScanState?>(null) }
 
     // Filter preview thumbnails
     var filterPreviewBitmaps by remember { mutableStateOf<Map<PageFilter, Bitmap>>(emptyMap()) }
@@ -350,10 +417,12 @@ fun CameraScreen(
     // Photo capture action
     fun takePhoto(autoQuad: Quad? = null) {
         val capture = imageCapture ?: return
-        if (isCapturing || activePopup != null) return
+        if (isCapturing || activePopup != null || activeCropScan != null) return
         isCapturing = true
 
-        val photoFile = container.fileStore.createTempFile(prefix = "cam_raw_", suffix = ".jpg")
+        val sess = sessionViewModel.session.value
+        val sessionDir = ScanSession.getSessionDir(context, sess.sessionId)
+        val photoFile = File(sessionDir, "${UUID.randomUUID()}.jpg")
         val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
 
         // Shutter sound
@@ -372,7 +441,29 @@ fun CameraScreen(
                         try {
                             when (currentMode) {
                                 CameraScanMode.DOCS, CameraScanMode.TO_TEXT -> {
-                                    val detectedQuad = if (autoCrop) (autoQuad ?: liveDetection?.smoothedQuad) else null
+                                    // Authoritative auto-crop on saved photo (1:1 with reference_detect.py)
+                                    val bmp = BitmapIo.decodeUpright(photoFile, maxLongSide = 1000)
+                                    val rgbaMat = Mat()
+                                    Utils.bitmapToMat(bmp, rgbaMat)
+                                    val bgrMat = Mat()
+                                    Imgproc.cvtColor(rgbaMat, bgrMat, Imgproc.COLOR_RGBA2BGR)
+                                    val corners = if (autoCrop) PageDetector.detectPage(bgrMat) else null
+                                    val autoCropSuccess = (corners != null)
+                                    val detectedQuad = if (corners != null) {
+                                        PageDetector.pointsToNormalizedQuad(corners, bmp.width.toFloat(), bmp.height.toFloat())
+                                    } else null
+                                    rgbaMat.release()
+                                    bgrMat.release()
+                                    bmp.recycle()
+
+                                    if (retakePageId != null) {
+                                        sessionViewModel.replacePagePhoto(retakePageId, photoFile.absolutePath, detectedQuad)
+                                        withContext(Dispatchers.Main) {
+                                            isCapturing = false
+                                            onNavigateToReview()
+                                        }
+                                        return@launch
+                                    }
 
                                     if (cropAfterEachScan) {
                                         // Open Crop-after-scan screen
@@ -381,17 +472,22 @@ fun CameraScreen(
                                             activeCropScan = CropScanState(
                                                 file = photoFile,
                                                 initialQuad = detectedQuad,
-                                                pageNumber = batchCaptures.size + 1
+                                                autoCropSuccess = autoCropSuccess,
+                                                pageNumber = sess.pages.size + 1
                                             )
                                         }
                                     } else {
                                         // Batch mode: add directly
-                                        val item = CameraCaptureItem(rawImageFile = photoFile, cropQuad = detectedQuad)
-                                        val thumb = BitmapIo.decodeUpright(photoFile, maxLongSide = 120)
+                                        sessionViewModel.addPage(
+                                            filePath = photoFile.absolutePath,
+                                            cropQuad = detectedQuad,
+                                            rotation = 0
+                                        )
+                                        val thumb = BitmapIo.decodeUpright(photoFile, maxLongSide = 160)
                                         withContext(Dispatchers.Main) {
-                                            batchCaptures = batchCaptures + item
                                             lastCapturedThumbnail = thumb
                                             isCapturing = false
+                                            showContinuePill = true
                                         }
                                     }
                                 }
@@ -502,61 +598,57 @@ fun CameraScreen(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
         if (uris.isNotEmpty()) {
-            scope.launch {
+            scope.launch(Dispatchers.IO) {
                 isCapturing = true
-                val docId = container.saveScanUseCase.saveScan(
-                    imageUris = uris,
-                    kind = if (currentMode == CameraScanMode.BOOK) DocumentKind.BOOK else DocumentKind.SCAN,
-                    targetDocId = targetDocId
-                )
-                isCapturing = false
-                if (currentMode == CameraScanMode.TO_TEXT) {
-                    onNavigateToOcr(docId)
-                } else {
-                    onNavigateToDocument(docId)
-                }
-            }
-        }
-    }
+                if (currentMode == CameraScanMode.DOCS || currentMode == CameraScanMode.TO_TEXT) {
+                    val sess = sessionViewModel.session.value
+                    val sessionDir = ScanSession.getSessionDir(context, sess.sessionId)
+                    uris.forEach { uri ->
+                        val pageId = UUID.randomUUID().toString()
+                        val destFile = File(sessionDir, "$pageId.jpg")
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            destFile.outputStream().use { output -> input.copyTo(output) }
+                        }
+                        if (destFile.exists()) {
+                            val bmp = BitmapIo.decodeUpright(destFile, maxLongSide = 1000)
+                            val rgbaMat = Mat()
+                            Utils.bitmapToMat(bmp, rgbaMat)
+                            val bgrMat = Mat()
+                            Imgproc.cvtColor(rgbaMat, bgrMat, Imgproc.COLOR_RGBA2BGR)
+                            val corners = PageDetector.detectPage(bgrMat)
+                            val quad = if (corners != null) {
+                                PageDetector.pointsToNormalizedQuad(corners, bmp.width.toFloat(), bmp.height.toFloat())
+                            } else null
+                            rgbaMat.release()
+                            bgrMat.release()
+                            bmp.recycle()
 
-    // If Crop-after-scan is active, display the crop screen
-    val cropScan = activeCropScan
-    if (cropScan != null) {
-        CropAfterScanView(
-            rawImageFile = cropScan.file,
-            initialQuad = cropScan.initialQuad,
-            pageNumber = cropScan.pageNumber,
-            totalPagesInBatch = batchCaptures.size + 1,
-            onRetake = {
-                cropScan.file.delete()
-                activeCropScan = null
-            },
-            onNextPage = { finalQuad, rot ->
-                val item = CameraCaptureItem(rawImageFile = cropScan.file, cropQuad = finalQuad, rotation = rot)
-                batchCaptures = batchCaptures + item
-                activeCropScan = null
-            },
-            onDone = { finalQuad, rot ->
-                val item = CameraCaptureItem(rawImageFile = cropScan.file, cropQuad = finalQuad, rotation = rot)
-                val allCaptures = batchCaptures + item
-                scope.launch {
-                    isCapturing = true
-                    val docId = container.saveScanUseCase.saveCameraScans(
-                        captures = allCaptures,
-                        kind = DocumentKind.SCAN,
+                            withContext(Dispatchers.Main) {
+                                sessionViewModel.addPage(destFile.absolutePath, quad, rotation = 0)
+                            }
+                        }
+                    }
+                    withContext(Dispatchers.Main) {
+                        isCapturing = false
+                        onNavigateToReview()
+                    }
+                } else {
+                    val docId = container.saveScanUseCase.saveScan(
+                        imageUris = uris,
+                        kind = if (currentMode == CameraScanMode.BOOK) DocumentKind.BOOK else DocumentKind.SCAN,
                         targetDocId = targetDocId
                     )
-                    isCapturing = false
-                    activeCropScan = null
-                    if (currentMode == CameraScanMode.TO_TEXT) {
-                        onNavigateToOcr(docId)
-                    } else {
-                        onNavigateToDocument(docId)
+                    withContext(Dispatchers.Main) {
+                        isCapturing = false
+                        if (currentMode == CameraScanMode.TO_TEXT) {
+                            onNavigateToOcr(docId)
+                        } else {
+                            onNavigateToDocument(docId)
+                        }
                     }
                 }
             }
-        )
-        return
+        }
     }
 
     // Main Camera Viewfinder & Controls
@@ -1202,7 +1294,7 @@ fun CameraScreen(
             }
         }
 
-        // Bottom Controls Container (Slider + Shutter + Cancel + Gallery)
+        // Bottom Controls Container (Slider + Shutter + Cancel + Gallery / Continue)
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -1211,6 +1303,26 @@ fun CameraScreen(
                 .padding(bottom = 32.dp, top = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // 3-second pill: "{n} pages · keep scanning or tap Continue" (Section 5)
+            AnimatedVisibility(
+                visible = showContinuePill && session.pages.isNotEmpty(),
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xCC2A2A2A),
+                    modifier = Modifier.padding(bottom = 12.dp)
+                ) {
+                    Text(
+                        text = "${session.pages.size} ${if (session.pages.size == 1) "page" else "pages"} · keep scanning or tap Continue",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                    )
+                }
+            }
+
             // Mode slider
             ModeSlider(
                 selectedMode = currentMode,
@@ -1218,40 +1330,6 @@ fun CameraScreen(
             )
 
             Spacer(modifier = Modifier.height(20.dp))
-
-            // If batch mode (cropAfterEachScan == false) and batch has items, show "Done (n)" chip above shutter
-            if (!cropAfterEachScan && batchCaptures.isNotEmpty()) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .clickable { finishBatch() }
-                        .padding(bottom = 12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (lastCapturedThumbnail != null) {
-                            Image(
-                                bitmap = lastCapturedThumbnail!!.asImageBitmap(),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                        }
-                        Text(
-                            text = "Done (${batchCaptures.size})",
-                            color = Color.Black,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
-                        )
-                    }
-                }
-            }
 
             // Shutter & actions row
             Row(
@@ -1263,7 +1341,13 @@ fun CameraScreen(
             ) {
                 // Cancel (✕)
                 IconButton(
-                    onClick = onNavigateBack,
+                    onClick = {
+                        if (session.pages.isEmpty()) {
+                            onNavigateBack()
+                        } else {
+                            showExitCameraDialog = true
+                        }
+                    },
                     modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
@@ -1280,23 +1364,86 @@ fun CameraScreen(
                     onClick = { takePhoto() }
                 )
 
-                // Gallery Import
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clickable { galleryLauncher.launch("image/*") }
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.PhotoLibrary,
-                        contentDescription = "Import",
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Text(
-                        text = "Import",
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
+                // Right action: Gallery Import (if 0 pages) OR Thumbnail + Continue (if >= 1 page)
+                if (session.pages.isEmpty()) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable { galleryLauncher.launch("image/*") }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.PhotoLibrary,
+                            contentDescription = "Import",
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Text(
+                            text = "Import",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable { onNavigateToReview() }
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(46.dp, 58.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .border(2.dp, Color.White, RoundedCornerShape(6.dp))
+                                .background(Color.DarkGray)
+                        ) {
+                            val thumb = lastCapturedThumbnail
+                            if (thumb != null) {
+                                Image(
+                                    bitmap = thumb.asImageBitmap(),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                val lastPage = session.pages.lastOrNull()
+                                if (lastPage != null) {
+                                    val bmp = remember(lastPage.filePath) {
+                                        BitmapIo.decodeUpright(File(lastPage.filePath), maxLongSide = 160)
+                                    }
+                                    Image(
+                                        bitmap = bmp.asImageBitmap(),
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            }
+
+                            // Green count badge on thumbnail
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFF13A06F),
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .align(Alignment.TopEnd)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = "${session.pages.size}",
+                                        color = Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = "Continue",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
@@ -1310,6 +1457,36 @@ fun CameraScreen(
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            }
+        }
+
+        // Full-screen Crop overlay if activeCropScan is non-null (keeps CameraX bound underneath!)
+        val cropScan = activeCropScan
+        if (cropScan != null) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                CropAfterScanView(
+                    rawImageFile = cropScan.file,
+                    initialQuad = cropScan.initialQuad,
+                    autoCropSuccess = cropScan.autoCropSuccess,
+                    pageNumber = cropScan.pageNumber,
+                    totalPagesInBatch = session.pages.size + 1,
+                    onRetake = {
+                        cropScan.file.delete()
+                        activeCropScan = null
+                    },
+                    onNextPage = { finalQuad, rot ->
+                        sessionViewModel.addPage(cropScan.file.absolutePath, finalQuad, rot)
+                        val thumb = BitmapIo.decodeUpright(cropScan.file, maxLongSide = 160)
+                        lastCapturedThumbnail = thumb
+                        activeCropScan = null
+                        showContinuePill = true
+                    },
+                    onDone = { finalQuad, rot ->
+                        sessionViewModel.addPage(cropScan.file.absolutePath, finalQuad, rot)
+                        activeCropScan = null
+                        onNavigateToReview()
+                    }
+                )
             }
         }
     }

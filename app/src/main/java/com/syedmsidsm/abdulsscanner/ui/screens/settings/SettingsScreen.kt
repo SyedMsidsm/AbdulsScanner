@@ -761,6 +761,7 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.fillMaxWidth()
             ) {
+                val context = androidx.compose.ui.platform.LocalContext.current
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "Abul's Scanner",
@@ -772,6 +773,30 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                val copied = com.syedmsidsm.abdulsscanner.domain.safety.CrashLogger.copyLastCrashReport(context)
+                                val msg = if (copied) "Crash report copied to clipboard" else "No crashes recorded"
+                                android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Copy crash report", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                com.syedmsidsm.abdulsscanner.domain.safety.CrashLogger.shareLastCrashReport(context)
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Share crash report", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                        }
+                    }
                 }
             }
 

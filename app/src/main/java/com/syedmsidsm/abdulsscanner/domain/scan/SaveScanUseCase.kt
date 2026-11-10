@@ -577,4 +577,150 @@ class SaveScanUseCase(
 
         docId
     }
+
+    suspend fun saveScanSession(
+        session: com.syedmsidsm.abdulsscanner.domain.scan.ScanSession,
+        kind: DocumentKind = DocumentKind.SCAN,
+        customName: String? = null
+    ): String = withContext(Dispatchers.IO) {
+        require(session.pages.isNotEmpty()) { "Cannot save empty scan session" }
+
+        val storageCheck = com.syedmsidsm.abdulsscanner.domain.safety.StorageSafety.checkStorage(context)
+        if (storageCheck is com.syedmsidsm.abdulsscanner.domain.safety.StorageSafety.StorageCheckResult.Blocked) {
+            throw IllegalStateException(storageCheck.message)
+        }
+
+        val hdMode = settingsRepository.hdMode.first()
+        val defaultPageSize = settingsRepository.pageSize.first()
+        val mirrorEnabled = settingsRepository.mirrorEnabled.first()
+
+        val isAppend = session.targetDocId != null
+        val docId = session.targetDocId?.toString() ?: UUID.randomUUID().toString()
+
+        val docName = customName ?: if (!isAppend) {
+            val pattern = settingsRepository.namePattern.first()
+            try {
+                SimpleDateFormat(pattern, Locale.ENGLISH).format(Date())
+            } catch (e: Exception) {
+                "Scan ${SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.ENGLISH).format(Date())}"
+            }
+        } else {
+            database.documentDao().getById(docId)?.name ?: "Scan"
+        }
+
+        val existingPages = if (isAppend) database.pageDao().getByDocumentId(docId) else emptyList()
+        val startPosition = existingPages.size
+        val newPages = mutableListOf<PageEntity>()
+
+        for ((index, scanPage) in session.pages.withIndex()) {
+            val pageId = UUID.randomUUID().toString()
+            val origFile = fileStore.getOrigFile(docId, pageId)
+            val srcFile = fileStore.getSrcFile(docId, pageId)
+            val photoFile = File(scanPage.filePath)
+
+            // Save raw photo to orig/
+            fileStore.writeAtomically(origFile) { fos ->
+                photoFile.inputStream().use { it.copyTo(fos) }
+            }
+
+            // Decode raw upright
+            val rawBmp = BitmapIo.decodeUpright(origFile, maxLongSide = if (hdMode) 8000 else 4000)
+
+            // Crop to src/ if quad provided and valid
+            val finalSrcBmp = if (scanPage.cropQuad != null && PerspectiveCrop.isValidQuad(scanPage.cropQuad)) {
+                PerspectiveCrop.crop(rawBmp, scanPage.cropQuad)
+            } else {
+                rawBmp
+            }
+
+            fileStore.writeAtomically(srcFile) { fos ->
+                finalSrcBmp.compress(Bitmap.CompressFormat.JPEG, if (hdMode) 95 else 90, fos)
+                fos.flush()
+            }
+
+            if (finalSrcBmp != rawBmp) {
+                finalSrcBmp.recycle()
+            }
+            rawBmp.recycle()
+
+            val quadJson = scanPage.cropQuad?.let { Json.encodeToString(it.toNormalizedList()) }
+
+            val pageEntity = PageEntity(
+                id = pageId,
+                documentId = docId,
+                position = startPosition + index,
+                sourcePath = "docs/$docId/src/$pageId.jpg",
+                originalPath = "docs/$docId/orig/$pageId.jpg",
+                renderedPath = "docs/$docId/pages/$pageId.jpg",
+                thumbPath = "docs/$docId/thumbs/$pageId.jpg",
+                widthPx = 0,
+                heightPx = 0,
+                cropQuad = quadJson,
+                rotation = scanPage.rotation,
+                filter = scanPage.filter.name
+            )
+            newPages.add(pageEntity)
+        }
+
+        val allPagesForDoc = existingPages + newPages
+
+        val documentEntity = if (isAppend) {
+            val existing = database.documentDao().getById(docId)!!
+            existing.copy(
+                pageCount = allPagesForDoc.size,
+                updatedAt = System.currentTimeMillis()
+            )
+        } else {
+            DocumentEntity(
+                id = docId,
+                name = docName,
+                kind = kind.name,
+                pageCount = allPagesForDoc.size,
+                coverPageId = newPages.firstOrNull()?.id,
+                pageSize = defaultPageSize,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis()
+            )
+        }
+
+        database.withTransaction {
+            database.documentDao().insert(documentEntity)
+            database.pageDao().insertAll(newPages)
+        }
+
+        for (page in newPages) {
+            val (w, h) = pageRenderer.renderPage(page)
+            database.pageDao().update(page.copy(widthPx = w, heightPx = h))
+        }
+
+        val fullPagesList = database.pageDao().getByDocumentId(docId)
+        val exportPdf = pdfBuilder.buildPdf(documentEntity, fullPagesList)
+        database.documentDao().updatePdfBuiltAt(docId, System.currentTimeMillis())
+
+        if (mirrorEnabled) {
+            val mirrorUri = mirrorStore.mirrorPdf(
+                pdfFile = exportPdf,
+                docName = documentEntity.name,
+                existingUriString = documentEntity.mirrorUri,
+                isLocked = documentEntity.locked
+            )
+            if (mirrorUri != null) {
+                database.documentDao().updateMirrorUri(docId, mirrorUri)
+            }
+        }
+
+        val fts = com.syedmsidsm.abdulsscanner.data.db.entity.DocumentSearchFts(
+            docId = docId,
+            name = com.syedmsidsm.abdulsscanner.domain.search.SearchNormalizer.normalize(documentEntity.name),
+            body = ""
+        )
+        database.searchDao().insertOrUpdate(fts)
+
+        com.syedmsidsm.abdulsscanner.domain.ocr.OcrWorker.enqueueForDocument(context, docId)
+
+        // Delete session directory cleanly
+        com.syedmsidsm.abdulsscanner.domain.scan.ScanSession.deleteSession(context, session.sessionId)
+
+        docId
+    }
 }

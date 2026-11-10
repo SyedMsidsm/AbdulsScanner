@@ -17,8 +17,8 @@ android {
         applicationId = "com.syedmsidsm.abdulsscanner"
         minSdk = 26
         targetSdk = 35
-        versionCode = 800
-        versionName = "1.0.0"
+        versionCode = 801
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -167,4 +167,6 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.room.testing)
     androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

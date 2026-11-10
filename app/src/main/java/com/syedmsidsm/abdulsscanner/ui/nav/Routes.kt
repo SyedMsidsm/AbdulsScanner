@@ -32,9 +32,18 @@ object Routes {
     const val SETTINGS_SECURITY = "settings/security"
     const val LABS_ARABIC_OCR = "labs/arabic-ocr"
     const val LOCK = "lock/{docId}"
-    const val CAMERA = "camera?mode={mode}&docId={docId}"
 
-    fun camera(mode: String = "DOCS", docId: String = "") = "camera?mode=$mode&docId=$docId"
+    const val SCAN_FLOW = "scan_flow"
+    const val SCAN_CAMERA = "scan_camera?mode={mode}&docId={docId}&retakeId={retakeId}"
+    const val SCAN_CROP = "scan_crop/{pageId}?isEdit={isEdit}"
+    const val SCAN_REVIEW = "scan_review"
+    const val CAMERA = SCAN_CAMERA
+
+    fun scanCamera(mode: String = "DOCS", docId: String = "", retakeId: String = "") =
+        "scan_camera?mode=$mode&docId=$docId&retakeId=$retakeId"
+    fun scanCrop(pageId: String, isEdit: Boolean = false) = "scan_crop/$pageId?isEdit=$isEdit"
+    fun scanReview() = "scan_review"
+    fun camera(mode: String = "DOCS", docId: String = "") = scanCamera(mode, docId)
     fun document(docId: String) = "document/$docId"
     fun lock(docId: String) = "lock/$docId"
     fun pageViewer(docId: String, pageId: String) = "page/$docId/$pageId"

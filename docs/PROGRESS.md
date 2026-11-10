@@ -258,3 +258,30 @@ Legend:
   - [x] 4. A backup made before the rename (`AbdulsScanner-backup-…zip`) still restores
   - [x] 5. Automatic backup keeps only the 3 newest files, counting old- and new-named ones together
   - [x] 6. The release APK file is named `AbulsScanner-1.0.0.apk`
+
+---
+
+## Fix Pack 1 (`docs/fix-pack-1/FIXES-1.md`)
+- [x] 1. Auto-crop: exact Kotlin port of OpenCV `reference_detect.py` in `PageDetector.kt` with all 4 masks and rejection rules.
+- [x] 2. Golden detection tests: `PageDetectorGoldenTest` with all 7 test photos passing within required error thresholds.
+- [x] 3. Magnifier loupe: 116 dp circular loupe showing 2.6× zoomed photo with crosshair, dynamic positioning away from touch finger.
+- [x] 4. Crop layout fixes: safe status bar / navigation bar insets, clamped image bounds, 2-row bottom bar (Retake, Rotate, Next on row 1; Done on row 2).
+- [x] 5. Root cause analysis of "Next closes app" bug documented in `CHANGELOG.md`.
+- [x] 6. Persistent `ScanSession` state machine (`session.json`) surviving back, next, rotation, and app termination.
+- [x] 7. Unfinished scan recovery dialog on startup (`fix-05-recover-session.png`) and 7-day orphan purge.
+- [x] 8. Review & Filter screen (`ReviewFilterScreen`): pager, 7 live thumbnail filters, "Apply to all pages" switch, bottom actions.
+- [x] 9. Local crash logging (`CrashLogger`) with "Copy last crash report" and "Share last crash report" in Settings → About.
+- [x] 10. Share sheet updates: dynamic file size calculations, "Share as long image" (`LongImageStitcher`), and "Save to Gallery".
+- [x] 11. Multi-page flow instrumented test (`MultiPageScanFlowTest`) passing on connected Samsung Galaxy S24 Ultra.
+- [x] 12. Verification of Fix Pack 1 acceptance criteria:
+  - [x] 1. Photograph a sheet of paper on a table: CROP screen opens with corners on paper corners (verified via Golden Tests and device tests)
+  - [x] 2. Photograph a room with no paper: corners sit at photo corners and "Couldn't find the page edges" shows (verified via scene 07)
+  - [x] 3. While dragging a corner, magnifier shows zoomed 2.6× photo view with crosshair away from finger
+  - [x] 4. CROP screen layout avoids status/gesture bar; Retake, Rotate, Next page, Done are fully visible
+  - [x] 5. Scan 3 pages tapping Next page: returns to camera; Done opens Review with 3 pages without closing
+  - [x] 6. Batch scanning with Crop OFF: thumbnail with count appears, Continue opens Review
+  - [x] 7. In Review: swipe through pages, change filter, crop, rotate, delete, add; Done opens document
+  - [x] 8. Close app during scan with 2 pages: "Unfinished scan found" offers to continue
+  - [x] 9. Share sheet shows sizes; "Share as long image" and "Save to Gallery" work
+  - [x] 10. Settings → About → "Copy last crash report" works
+  - [x] 11. Golden detection tests and multi-page flow UI test pass in CI and device runs

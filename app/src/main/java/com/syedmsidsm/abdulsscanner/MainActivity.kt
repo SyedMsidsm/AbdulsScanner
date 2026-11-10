@@ -12,6 +12,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.core.content.FileProvider
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -20,6 +21,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navigation
 import com.syedmsidsm.abdulsscanner.data.db.entity.DocumentEntity
 import com.syedmsidsm.abdulsscanner.domain.pdf.PdfPrintAdapter
 import com.syedmsidsm.abdulsscanner.ui.theme.AppThemeMode
@@ -28,6 +30,10 @@ import com.syedmsidsm.abdulsscanner.ui.screens.backup.BackupScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.backup.BackupViewModel
 import com.syedmsidsm.abdulsscanner.ui.screens.camera.CameraScanMode
 import com.syedmsidsm.abdulsscanner.ui.screens.camera.CameraScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.camera.CropAfterScanView
+import com.syedmsidsm.abdulsscanner.ui.screens.camera.CropScreenMode
+import com.syedmsidsm.abdulsscanner.ui.screens.camera.ReviewFilterScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.camera.ScanSessionViewModel
 import com.syedmsidsm.abdulsscanner.ui.screens.document.DocumentScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.document.DocumentViewModel
 import com.syedmsidsm.abdulsscanner.ui.screens.home.HomeScreen
@@ -393,50 +399,155 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    composable(
-                        route = Routes.CAMERA,
-                        arguments = listOf(
-                            navArgument("mode") { type = NavType.StringType; defaultValue = "DOCS" },
-                            navArgument("docId") { type = NavType.StringType; defaultValue = "" }
-                        )
-                    ) { backStackEntry ->
-                        val modeParam = backStackEntry.arguments?.getString("mode") ?: "DOCS"
-                        val docIdParam = backStackEntry.arguments?.getString("docId").orEmpty()
-                        val scanMode = try {
-                            CameraScanMode.valueOf(modeParam)
-                        } catch (_: Exception) {
-                            CameraScanMode.DOCS
+                    navigation(
+                        startDestination = Routes.SCAN_CAMERA,
+                        route = Routes.SCAN_FLOW
+                    ) {
+                        composable(
+                            route = Routes.SCAN_CAMERA,
+                            arguments = listOf(
+                                navArgument("mode") { type = NavType.StringType; defaultValue = "DOCS" },
+                                navArgument("docId") { type = NavType.StringType; defaultValue = "" },
+                                navArgument("retakeId") { type = NavType.StringType; defaultValue = "" }
+                            )
+                        ) { backStackEntry ->
+                            val parentEntry = remember(backStackEntry) {
+                                navController.getBackStackEntry(Routes.SCAN_FLOW)
+                            }
+                            val scanSessionViewModel: ScanSessionViewModel = androidx.lifecycle.viewmodel.compose.viewModel(parentEntry)
+
+                            val modeParam = backStackEntry.arguments?.getString("mode") ?: "DOCS"
+                            val docIdParam = backStackEntry.arguments?.getString("docId").orEmpty()
+                            val retakeIdParam = backStackEntry.arguments?.getString("retakeId").orEmpty()
+                            val scanMode = try {
+                                CameraScanMode.valueOf(modeParam)
+                            } catch (_: Exception) {
+                                CameraScanMode.DOCS
+                            }
+
+                            val targetDocIdLong = docIdParam.toLongOrNull()
+                            androidx.compose.runtime.LaunchedEffect(targetDocIdLong) {
+                                if (retakeIdParam.isEmpty()) {
+                                    scanSessionViewModel.initSession(targetDocId = targetDocIdLong)
+                                }
+                            }
+
+                            CameraScreen(
+                                container = container,
+                                initialMode = scanMode,
+                                targetDocId = if (docIdParam.isNotEmpty()) docIdParam else null,
+                                retakePageId = if (retakeIdParam.isNotEmpty()) retakeIdParam else null,
+                                sessionViewModel = scanSessionViewModel,
+                                onNavigateBack = { navController.popBackStack() },
+                                onNavigateToDocument = { docId ->
+                                    navController.navigate(Routes.document(docId)) {
+                                        popUpTo(Routes.HOME)
+                                    }
+                                },
+                                onNavigateToReview = {
+                                    navController.navigate(Routes.scanReview())
+                                },
+                                onNavigateToBookSplit = { docId, pageId ->
+                                    navController.navigate(Routes.book(docId, pageId)) {
+                                        popUpTo(Routes.HOME)
+                                    }
+                                },
+                                onNavigateToOcr = { docId ->
+                                    navController.navigate(Routes.ocr(docId)) {
+                                        popUpTo(Routes.HOME)
+                                    }
+                                },
+                                onNavigateToQrResult = { qrId, raw ->
+                                    navController.navigate(Routes.qrResult(qrId, raw)) {
+                                        popUpTo(Routes.HOME)
+                                    }
+                                },
+                                onNavigateToSettings = {
+                                    navController.navigate(Routes.SETTINGS)
+                                }
+                            )
                         }
 
-                        CameraScreen(
-                            container = container,
-                            initialMode = scanMode,
-                            targetDocId = if (docIdParam.isNotEmpty()) docIdParam else null,
-                            onNavigateBack = { navController.popBackStack() },
-                            onNavigateToDocument = { docId ->
-                                navController.navigate(Routes.document(docId)) {
-                                    popUpTo(Routes.HOME)
-                                }
-                            },
-                            onNavigateToBookSplit = { docId, pageId ->
-                                navController.navigate(Routes.book(docId, pageId)) {
-                                    popUpTo(Routes.HOME)
-                                }
-                            },
-                            onNavigateToOcr = { docId ->
-                                navController.navigate(Routes.ocr(docId)) {
-                                    popUpTo(Routes.HOME)
-                                }
-                            },
-                            onNavigateToQrResult = { qrId, raw ->
-                                navController.navigate(Routes.qrResult(qrId, raw)) {
-                                    popUpTo(Routes.HOME)
-                                }
-                            },
-                            onNavigateToSettings = {
-                                navController.navigate(Routes.SETTINGS)
+                        composable(
+                            route = Routes.SCAN_CROP,
+                            arguments = listOf(
+                                navArgument("pageId") { type = NavType.StringType },
+                                navArgument("isEdit") { type = NavType.BoolType; defaultValue = false }
+                            )
+                        ) { backStackEntry ->
+                            val parentEntry = remember(backStackEntry) {
+                                navController.getBackStackEntry(Routes.SCAN_FLOW)
                             }
-                        )
+                            val scanSessionViewModel: ScanSessionViewModel = androidx.lifecycle.viewmodel.compose.viewModel(parentEntry)
+                            val pageId = backStackEntry.arguments?.getString("pageId") ?: return@composable
+                            val isEdit = backStackEntry.arguments?.getBoolean("isEdit") ?: false
+
+                            val page = scanSessionViewModel.getPage(pageId)
+                            if (page == null) {
+                                androidx.compose.runtime.LaunchedEffect(Unit) {
+                                    navController.popBackStack()
+                                }
+                                return@composable
+                            }
+
+                            val pageIndex = scanSessionViewModel.pages.indexOfFirst { it.id == pageId }
+
+                            CropAfterScanView(
+                                rawImageFile = java.io.File(page.filePath),
+                                initialQuad = page.cropQuad,
+                                autoCropSuccess = page.cropQuad != null,
+                                pageNumber = if (pageIndex >= 0) pageIndex + 1 else 1,
+                                totalPagesInBatch = scanSessionViewModel.pageCount,
+                                mode = if (isEdit) CropScreenMode.EDIT_PAGE else CropScreenMode.AFTER_SCAN,
+                                onCancel = {
+                                    navController.popBackStack()
+                                },
+                                onRetake = {
+                                    navController.popBackStack()
+                                    navController.navigate(Routes.scanCamera(retakeId = pageId))
+                                },
+                                onApply = { finalQuad, rot ->
+                                    scanSessionViewModel.updatePage(pageId, cropQuad = finalQuad, rotation = rot)
+                                    navController.popBackStack()
+                                },
+                                onDone = { finalQuad, rot ->
+                                    scanSessionViewModel.updatePage(pageId, cropQuad = finalQuad, rotation = rot)
+                                    navController.popBackStack()
+                                },
+                                onNextPage = { finalQuad, rot ->
+                                    scanSessionViewModel.updatePage(pageId, cropQuad = finalQuad, rotation = rot)
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+
+                        composable(route = Routes.SCAN_REVIEW) { backStackEntry ->
+                            val parentEntry = remember(backStackEntry) {
+                                navController.getBackStackEntry(Routes.SCAN_FLOW)
+                            }
+                            val scanSessionViewModel: ScanSessionViewModel = androidx.lifecycle.viewmodel.compose.viewModel(parentEntry)
+
+                            ReviewFilterScreen(
+                                sessionViewModel = scanSessionViewModel,
+                                onBackToCamera = {
+                                    navController.popBackStack(Routes.SCAN_CAMERA, inclusive = false)
+                                },
+                                onDone = { docId ->
+                                    navController.navigate(Routes.document(docId)) {
+                                        popUpTo(Routes.HOME)
+                                    }
+                                },
+                                onNavigateToCrop = { pageId ->
+                                    navController.navigate(Routes.scanCrop(pageId, isEdit = true))
+                                },
+                                onNavigateToCameraForRetake = { pageId ->
+                                    navController.navigate(Routes.scanCamera(retakeId = pageId))
+                                },
+                                onNavigateToCameraForAdd = {
+                                    navController.popBackStack(Routes.SCAN_CAMERA, inclusive = false)
+                                }
+                            )
+                        }
                     }
 
                     composable(

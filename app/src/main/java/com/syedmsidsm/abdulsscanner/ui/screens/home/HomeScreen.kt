@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -65,6 +66,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -121,6 +123,51 @@ fun HomeScreen(
     var showSelectTagSheet by remember { mutableStateOf(false) }
     var chosenTagIdsForSelection by remember { mutableStateOf(setOf<Long>()) }
     var scannerErrorMsg by remember { mutableStateOf<String?>(null) }
+
+    // Unfinished Session Recovery (Section 1.1 & fix-05-recover-session.png)
+    var unfinishedSession by remember { mutableStateOf<com.syedmsidsm.abdulsscanner.domain.scan.ScanSession?>(null) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val sessions = com.syedmsidsm.abdulsscanner.domain.scan.ScanSession.findUnfinishedSessions(context)
+            if (sessions.isNotEmpty()) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    unfinishedSession = sessions.first()
+                }
+            }
+        }
+    }
+
+    if (unfinishedSession != null) {
+        val sess = unfinishedSession!!
+        AlertDialog(
+            onDismissRequest = { unfinishedSession = null },
+            title = { Text("Unfinished scan found", fontWeight = FontWeight.Bold) },
+            text = {
+                Text("You have ${sess.pages.size} scanned ${if (sess.pages.size == 1) "page" else "pages"} that weren't saved because the app was closed.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        unfinishedSession = null
+                        onNavigateToCamera("DOCS")
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Continue scanning")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        com.syedmsidsm.abdulsscanner.domain.scan.ScanSession.deleteSession(context, sess.sessionId)
+                        unfinishedSession = null
+                    }
+                ) {
+                    Text("Discard", color = MaterialTheme.colorScheme.error)
+                }
+            }
+        )
+    }
 
     // Scanner Activity Result Launcher
     val scannerLauncher = rememberLauncherForActivityResult(

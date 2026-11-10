@@ -1,0 +1,132 @@
+{
+ "01-dark-desk-angled": {
+  "expected": [
+   [
+    240,
+    260
+   ],
+   [
+    960,
+    330
+   ],
+   [
+    930,
+    1330
+   ],
+   [
+    190,
+    1270
+   ]
+  ],
+  "note": "Receipt on a dark desk, tilted"
+ },
+ "02-light-table-low-contrast": {
+  "expected": [
+   [
+    170,
+    220
+   ],
+   [
+    1010,
+    200
+   ],
+   [
+    1050,
+    1360
+   ],
+   [
+    150,
+    1400
+   ]
+  ],
+  "note": "Receipt on a light beige table (low contrast)"
+ },
+ "03-hand-shadow-over-corner": {
+  "expected": [
+   [
+    260,
+    200
+   ],
+   [
+    990,
+    290
+   ],
+   [
+    940,
+    1350
+   ],
+   [
+    200,
+    1300
+   ]
+  ],
+  "note": "Notebook page, hand shadow over the bottom-left corner"
+ },
+ "04-busy-carpet": {
+  "expected": [
+   [
+    300,
+    330
+   ],
+   [
+    930,
+    300
+   ],
+   [
+    960,
+    1250
+   ],
+   [
+    280,
+    1300
+   ]
+  ],
+  "note": "Receipt on a patterned carpet"
+ },
+ "05-pen-across-edge": {
+  "expected": [
+   [
+    220,
+    240
+   ],
+   [
+    980,
+    260
+   ],
+   [
+    990,
+    1310
+   ],
+   [
+    200,
+    1330
+   ]
+  ],
+  "note": "Notebook page with a red pen lying across the bottom edge"
+ },
+ "06-close-up-fills-frame": {
+  "expected": [
+   [
+    70,
+    90
+   ],
+   [
+    1130,
+    110
+   ],
+   [
+    1120,
+    1500
+   ],
+   [
+    80,
+    1520
+   ]
+  ],
+  "note": "Close-up: page fills ~80% of the photo"
+ },
+ "07-room-no-page": {
+  "expected": null,
+  "note": "The owner's room photo (laptop, no paper): must return NO page"
+ }
+}
