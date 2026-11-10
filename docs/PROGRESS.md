@@ -285,3 +285,25 @@ Legend:
   - [x] 9. Share sheet shows sizes; "Share as long image" and "Save to Gallery" work
   - [x] 10. Settings → About → "Copy last crash report" works
   - [x] 11. Golden detection tests and multi-page flow UI test pass in CI and device runs
+
+---
+
+## Fix Pack 2 (`docs/fix-pack-2/FIXES-2.md`)
+- [x] 1. Live capture guidance: 1:1 Kotlin port of OpenCV `reference_guidance.py` in `CaptureGuidance.kt` with live hint pill, quad outline, and steady auto-capture (1000 ms steady, 1500 ms cooldown).
+- [x] 2. Capture guidance unit tests: `CaptureGuidanceTest.kt` with all test cases passing.
+- [x] 3. Portrait lock: `MainActivity` locked to `portrait` orientation; CameraX target rotation set to `Surface.ROTATION_0`.
+- [x] 4. Screenshot card: one-time opt-in card on Home, `READ_MEDIA_IMAGES` / `READ_MEDIA_VISUAL_USER_SELECTED` permission request, bottom-right floating card with thumbnail, tap opens Review screen, Settings toggle.
+- [x] 5. Crop screen refinements: 8 handles (4 corners + 4 mid-edge handles), parallel edge dragging without drift, 2.6× magnifier loupe on all 8 handles, Auto Crop toggle (resets to full image when OFF, restores auto-crop quad when ON), helper text line.
+- [x] 6. Document screen redesign: 2-column page grid with `01`, `02` badges, dashed "Tap 📷➕ to add new pages" tile, top bar rename & `✓` selection button, 5-action bottom bar (Add, Collage, Share, Edit PDF, More).
+- [x] 7. Page-select mode: top bar with `←`, "{n} selected", "Select all" / "Deselect all", selection badges, 5-action bottom bar (Share, Save to Gallery, Move to doc/new doc, Delete with undo snackbar, More [Copy, Collage]).
+- [x] 8. Verification of Fix Pack 2 acceptance criteria:
+  - [x] 1. Live capture guidance shows hint pill on camera preview; auto-captures when steady >= 1000 ms; manual shutter works anytime.
+  - [x] 2. Unit tests in `CaptureGuidanceTest` pass 100%.
+  - [x] 3. Tilting phone 90° does not rotate, squash, or distort any screen (locked to portrait).
+  - [x] 4. Screenshot card asks once, shows recent screenshot on Home, and tap opens Review screen.
+  - [x] 5. Crop screen has 8 handles, 2.6× magnifier on all handles, parallel edge drag, Auto Crop toggle, and helper line.
+  - [x] 6. Document screen has 2-column grid, page number badges, dashed add tile, rename & `✓` buttons, and 5 bottom actions.
+  - [x] 7. Page-select mode supports multi-page selection, Share, Save to Gallery, Move (existing/new doc), Delete with undo snackbar, Copy, and Collage.
+  - [x] 8. Merged manifest permissions restricted to approved list (including `READ_MEDIA_IMAGES`, `READ_MEDIA_VISUAL_USER_SELECTED`, `READ_EXTERNAL_STORAGE` maxSdk 32).
+  - [x] 9. Release APK `AbulsScanner-1.0.2.apk` built, signed with release key, and verified.
+

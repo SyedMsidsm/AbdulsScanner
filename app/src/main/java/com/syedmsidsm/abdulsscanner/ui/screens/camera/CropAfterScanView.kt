@@ -8,6 +8,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.RotateRight
@@ -30,7 +33,6 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,6 +50,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -138,20 +141,23 @@ fun CropAfterScanView(
         }
     }
 
-    // Default to full 4 image corners (0,0 to 1,1) if no page was found, never arbitrary inset
+    // Auto Crop toggle state: default ON when autoCropSuccess and initialQuad != null
+    val detectedQuad = remember(initialQuad) {
+        initialQuad ?: Quad.fullQuad()
+    }
+    var isAutoCropOn by remember { mutableStateOf(autoCropSuccess && initialQuad != null) }
+
     var quad by remember(initialQuad) {
         mutableStateOf(
-            initialQuad ?: Quad(
-                Point2D(0.0f, 0.0f),
-                Point2D(1.0f, 0.0f),
-                Point2D(1.0f, 1.0f),
-                Point2D(0.0f, 1.0f)
-            )
+            if (autoCropSuccess && initialQuad != null) initialQuad else Quad.fullQuad()
         )
     }
 
     var activeHandleIndex by remember { mutableStateOf<Int?>(null) }
     var activeFingerPos by remember { mutableStateOf<Offset?>(null) }
+    var dragStartPos by remember { mutableStateOf<Offset?>(null) }
+    var dragStartQuad by remember { mutableStateOf<Quad?>(null) }
+
     val isValid = remember(quad) { PerspectiveCrop.isValidQuad(quad) }
 
     val brandGreen = Color(0xFF13A06F)
@@ -172,7 +178,7 @@ fun CropAfterScanView(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // Top Bar (56 dp, statusBarsPadding)
+        // Top Bar (56 dp, statusBarsPadding, title "Adjust crop" per FIXES-2 §4)
         Surface(
             color = Color.Black,
             modifier = Modifier
@@ -204,21 +210,39 @@ fun CropAfterScanView(
                 }
 
                 Text(
-                    text = if (mode == CropScreenMode.EDIT_PAGE) "Adjust crop" else "Page $pageNumber · adjust crop",
+                    text = "Adjust crop",
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center
                 )
+
+                // Rotate button in top-right
+                FilledTonalIconButton(
+                    onClick = { rotation = (rotation + 90) % 360 },
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = Color(0xFF2A2A2A),
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier
+                        .size(40.dp)
+                        .align(Alignment.CenterEnd)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.RotateRight,
+                        contentDescription = "Rotate",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
 
-        // Image Viewport Area with Handles and Magnifier
+        // Image Viewport Area with 8 Handles and Magnifier
         BoxWithConstraints(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center
         ) {
             val boxW = maxWidth.value
@@ -246,7 +270,12 @@ fun CropAfterScanView(
                                     val screenP2 = Offset(imageRect.left + quad.p2.x * imageRect.width, imageRect.top + quad.p2.y * imageRect.height)
                                     val screenP3 = Offset(imageRect.left + quad.p3.x * imageRect.width, imageRect.top + quad.p3.y * imageRect.height)
 
-                                    val handles = listOf(screenP0, screenP1, screenP2, screenP3)
+                                    val screenM0 = Offset((screenP0.x + screenP1.x) / 2f, (screenP0.y + screenP1.y) / 2f)
+                                    val screenM1 = Offset((screenP1.x + screenP2.x) / 2f, (screenP1.y + screenP2.y) / 2f)
+                                    val screenM2 = Offset((screenP2.x + screenP3.x) / 2f, (screenP2.y + screenP3.y) / 2f)
+                                    val screenM3 = Offset((screenP3.x + screenP0.x) / 2f, (screenP3.y + screenP0.y) / 2f)
+
+                                    val handles = listOf(screenP0, screenP1, screenP2, screenP3, screenM0, screenM1, screenM2, screenM3)
                                     val touchTargetRadius = 36.dp.toPx()
 
                                     val distances = handles.map { hypot(startOffset.x - it.x, startOffset.y - it.y) }
@@ -254,40 +283,88 @@ fun CropAfterScanView(
                                     if (distances[minIdx] <= touchTargetRadius) {
                                         activeHandleIndex = minIdx
                                         activeFingerPos = startOffset
+                                        dragStartPos = startOffset
+                                        dragStartQuad = quad
                                     } else {
                                         activeHandleIndex = null
                                         activeFingerPos = null
+                                        dragStartPos = null
+                                        dragStartQuad = null
                                     }
                                 },
                                 onDrag = { change, _ ->
                                     val idx = activeHandleIndex ?: return@detectDragGestures
+                                    val startPos = dragStartPos ?: return@detectDragGestures
+                                    val baseQuad = dragStartQuad ?: return@detectDragGestures
                                     change.consume()
                                     val pos = change.position
                                     activeFingerPos = pos
 
-                                    // Clamp dragged position strictly to image rectangle
-                                    val clampedX = pos.x.coerceIn(imageRect.left, imageRect.right)
-                                    val clampedY = pos.y.coerceIn(imageRect.top, imageRect.bottom)
+                                    if (idx in 0..3) {
+                                        // Corner drag: moves just that corner
+                                        val clampedX = pos.x.coerceIn(imageRect.left, imageRect.right)
+                                        val clampedY = pos.y.coerceIn(imageRect.top, imageRect.bottom)
 
-                                    val normX = ((clampedX - imageRect.left) / imageRect.width).coerceIn(0f, 1f)
-                                    val normY = ((clampedY - imageRect.top) / imageRect.height).coerceIn(0f, 1f)
-                                    val newPt = Point2D(normX, normY)
+                                        val normX = ((clampedX - imageRect.left) / imageRect.width).coerceIn(0f, 1f)
+                                        val normY = ((clampedY - imageRect.top) / imageRect.height).coerceIn(0f, 1f)
+                                        val newPt = Point2D(normX, normY)
 
-                                    quad = when (idx) {
-                                        0 -> quad.copy(p0 = newPt)
-                                        1 -> quad.copy(p1 = newPt)
-                                        2 -> quad.copy(p2 = newPt)
-                                        3 -> quad.copy(p3 = newPt)
-                                        else -> quad
+                                        quad = when (idx) {
+                                            0 -> quad.copy(p0 = newPt)
+                                            1 -> quad.copy(p1 = newPt)
+                                            2 -> quad.copy(p2 = newPt)
+                                            3 -> quad.copy(p3 = newPt)
+                                            else -> quad
+                                        }
+                                    } else {
+                                        // Mid-edge drag: moves that entire edge parallel
+                                        val dx = (pos.x - startPos.x) / imageRect.width
+                                        val dy = (pos.y - startPos.y) / imageRect.height
+
+                                        quad = when (idx) {
+                                            4 -> { // Top edge: p0 and p1
+                                                val p0x = (baseQuad.p0.x + dx).coerceIn(0f, 1f)
+                                                val p0y = (baseQuad.p0.y + dy).coerceIn(0f, 1f)
+                                                val p1x = (baseQuad.p1.x + dx).coerceIn(0f, 1f)
+                                                val p1y = (baseQuad.p1.y + dy).coerceIn(0f, 1f)
+                                                baseQuad.copy(p0 = Point2D(p0x, p0y), p1 = Point2D(p1x, p1y))
+                                            }
+                                            5 -> { // Right edge: p1 and p2
+                                                val p1x = (baseQuad.p1.x + dx).coerceIn(0f, 1f)
+                                                val p1y = (baseQuad.p1.y + dy).coerceIn(0f, 1f)
+                                                val p2x = (baseQuad.p2.x + dx).coerceIn(0f, 1f)
+                                                val p2y = (baseQuad.p2.y + dy).coerceIn(0f, 1f)
+                                                baseQuad.copy(p1 = Point2D(p1x, p1y), p2 = Point2D(p2x, p2y))
+                                            }
+                                            6 -> { // Bottom edge: p2 and p3
+                                                val p2x = (baseQuad.p2.x + dx).coerceIn(0f, 1f)
+                                                val p2y = (baseQuad.p2.y + dy).coerceIn(0f, 1f)
+                                                val p3x = (baseQuad.p3.x + dx).coerceIn(0f, 1f)
+                                                val p3y = (baseQuad.p3.y + dy).coerceIn(0f, 1f)
+                                                baseQuad.copy(p2 = Point2D(p2x, p2y), p3 = Point2D(p3x, p3y))
+                                            }
+                                            7 -> { // Left edge: p3 and p0
+                                                val p3x = (baseQuad.p3.x + dx).coerceIn(0f, 1f)
+                                                val p3y = (baseQuad.p3.y + dy).coerceIn(0f, 1f)
+                                                val p0x = (baseQuad.p0.x + dx).coerceIn(0f, 1f)
+                                                val p0y = (baseQuad.p0.y + dy).coerceIn(0f, 1f)
+                                                baseQuad.copy(p3 = Point2D(p3x, p3y), p0 = Point2D(p0x, p0y))
+                                            }
+                                            else -> quad
+                                        }
                                     }
                                 },
                                 onDragEnd = {
                                     activeHandleIndex = null
                                     activeFingerPos = null
+                                    dragStartPos = null
+                                    dragStartQuad = null
                                 },
                                 onDragCancel = {
                                     activeHandleIndex = null
                                     activeFingerPos = null
+                                    dragStartPos = null
+                                    dragStartQuad = null
                                 }
                             )
                         }
@@ -296,6 +373,13 @@ fun CropAfterScanView(
                     val p1 = Offset(imageRect.left + quad.p1.x * imageRect.width, imageRect.top + quad.p1.y * imageRect.height)
                     val p2 = Offset(imageRect.left + quad.p2.x * imageRect.width, imageRect.top + quad.p2.y * imageRect.height)
                     val p3 = Offset(imageRect.left + quad.p3.x * imageRect.width, imageRect.top + quad.p3.y * imageRect.height)
+
+                    val m0 = Offset((p0.x + p1.x) / 2f, (p0.y + p1.y) / 2f)
+                    val m1 = Offset((p1.x + p2.x) / 2f, (p1.y + p2.y) / 2f)
+                    val m2 = Offset((p2.x + p3.x) / 2f, (p2.y + p3.y) / 2f)
+                    val m3 = Offset((p3.x + p0.x) / 2f, (p3.y + p0.y) / 2f)
+
+                    val allHandles = listOf(p0, p1, p2, p3, m0, m1, m2, m3)
 
                     // 1. Draw base photo
                     drawImage(
@@ -318,19 +402,34 @@ fun CropAfterScanView(
                     drawPath(quadPath, fillColor)
                     drawPath(quadPath, outlineColor, style = Stroke(width = 2.5.dp.toPx()))
 
-                    // 3. Draw 4 Corner Handles (22 dp white circle with 3 dp green ring)
-                    val handlePoints = listOf(p0, p1, p2, p3)
-                    handlePoints.forEachIndexed { i, pt ->
-                        val isDragging = i == activeHandleIndex
+                    // 3. Draw 8 Handles (4 Corner handles + 4 Mid-edge handles)
+                    // Corner handles: 22 dp white circle with 3 dp green ring (or green filled if active)
+                    for (i in 0..3) {
+                        val pt = allHandles[i]
+                        val isDragging = (i == activeHandleIndex)
                         val radius = if (isDragging) 13.dp.toPx() else 11.dp.toPx()
                         val ringWidth = 3.dp.toPx()
 
                         if (isDragging) {
-                            // Active handle turns green-filled
                             drawCircle(color = Color.White, radius = radius + 2.dp.toPx(), center = pt)
                             drawCircle(color = brandGreen, radius = radius, center = pt)
                         } else {
-                            // Inactive handle: white fill with 3 dp green ring
+                            drawCircle(color = Color.White, radius = radius, center = pt)
+                            drawCircle(color = outlineColor, radius = radius, center = pt, style = Stroke(width = ringWidth))
+                        }
+                    }
+
+                    // Mid-edge handles: 16 dp white circle with 2.5 dp green ring
+                    for (i in 4..7) {
+                        val pt = allHandles[i]
+                        val isDragging = (i == activeHandleIndex)
+                        val radius = if (isDragging) 10.dp.toPx() else 8.dp.toPx()
+                        val ringWidth = 2.5.dp.toPx()
+
+                        if (isDragging) {
+                            drawCircle(color = Color.White, radius = radius + 2.dp.toPx(), center = pt)
+                            drawCircle(color = brandGreen, radius = radius, center = pt)
+                        } else {
                             drawCircle(color = Color.White, radius = radius, center = pt)
                             drawCircle(color = outlineColor, radius = radius, center = pt, style = Stroke(width = ringWidth))
                         }
@@ -338,8 +437,8 @@ fun CropAfterScanView(
 
                     // 4. Magnifier Loupe (zoomed 2.6x, 116 dp diameter, away from finger)
                     activeHandleIndex?.let { idx ->
-                        val finger = activeFingerPos ?: handlePoints[idx]
-                        val cornerScreen = handlePoints[idx]
+                        val targetPt = allHandles[idx]
+                        val finger = activeFingerPos ?: targetPt
 
                         val loupeDiameter = 116.dp.toPx()
                         val loupeRadius = loupeDiameter / 2f
@@ -365,7 +464,7 @@ fun CropAfterScanView(
                             clipPath(loupeCircle)
                             translate(loupeCenter.x, loupeCenter.y)
                             scale(2.6f, 2.6f, Offset.Zero)
-                            translate(-cornerScreen.x, -cornerScreen.y)
+                            translate(-targetPt.x, -targetPt.y)
                         }) {
                             // Magnified photo
                             drawImage(
@@ -399,6 +498,17 @@ fun CropAfterScanView(
             }
         }
 
+        // Helper line under image per FIXES-2 §4
+        Text(
+            text = "Drag the dots to the page corners, or adjust later with the crop tool",
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+        )
+
         // Status Pill above bottom bar
         AnimatedVisibility(
             visible = showPill,
@@ -409,7 +519,7 @@ fun CropAfterScanView(
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = Color(0xCC2A2A2A),
-                modifier = Modifier.padding(bottom = 12.dp, start = 24.dp, end = 24.dp)
+                modifier = Modifier.padding(bottom = 6.dp, start = 24.dp, end = 24.dp)
             ) {
                 Text(
                     text = if (autoCropSuccess) "Page edges found automatically" else "Couldn't find the page edges. Drag the corners.",
@@ -421,105 +531,103 @@ fun CropAfterScanView(
             }
         }
 
-        // Two-Row Bottom Bar (#161616 background, navigationBarsPadding)
+        // Action row: single line per FIXES-2 §4 (Auto Crop toggle left, Spacer, Retake text button, Continue filled green)
         Surface(
             color = bottomBarBg,
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
         ) {
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Row 1: Retake / Rotate / Next page ->
+                // Auto Crop toggle on left: radio circle + text
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            val next = !isAutoCropOn
+                            isAutoCropOn = next
+                            quad = if (next) detectedQuad else Quad.fullQuad()
+                        }
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
                 ) {
-                    if (mode == CropScreenMode.EDIT_PAGE) {
-                        FilledTonalButton(
-                            onClick = onCancel,
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = Color(0xFF2A2A2A),
-                                contentColor = Color.White
-                            ),
-                            modifier = Modifier.height(48.dp)
-                        ) {
-                            Text("Cancel", maxLines = 1)
-                        }
-                    } else {
-                        FilledTonalButton(
-                            onClick = onRetake,
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = Color(0xFF2A2A2A),
-                                contentColor = Color.White
-                            ),
-                            modifier = Modifier.height(48.dp)
-                        ) {
-                            Icon(Icons.Outlined.Close, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Retake", maxLines = 1)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    FilledTonalIconButton(
-                        onClick = { rotation = (rotation + 90) % 360 },
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = Color(0xFF2A2A2A),
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier.size(48.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .border(2.dp, if (isAutoCropOn) brandGreen else Color.Gray, CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.AutoMirrored.Outlined.RotateRight, contentDescription = "Rotate")
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    if (mode == CropScreenMode.EDIT_PAGE) {
-                        Button(
-                            onClick = { if (isValid) onApply(quad, rotation) },
-                            enabled = isValid,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = brandGreen,
-                                contentColor = Color.White
-                            ),
-                            modifier = Modifier.height(48.dp)
-                        ) {
-                            Text("Apply", fontWeight = FontWeight.Bold, maxLines = 1)
-                        }
-                    } else {
-                        Button(
-                            onClick = { if (isValid) onNextPage(quad, rotation) },
-                            enabled = isValid,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = brandGreen,
-                                contentColor = Color.White
-                            ),
-                            modifier = Modifier.height(48.dp)
-                        ) {
-                            Text("Next page →", fontWeight = FontWeight.Bold, maxLines = 1)
+                        if (isAutoCropOn) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .background(brandGreen, CircleShape)
+                            )
                         }
                     }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Auto Crop",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
 
-                // Row 2: Centered "Done (n pages)" (only in AFTER_SCAN mode)
-                if (mode == CropScreenMode.AFTER_SCAN) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.weight(1f))
+
+                if (mode == CropScreenMode.EDIT_PAGE) {
                     TextButton(
-                        onClick = { if (isValid) onDone(quad, rotation) },
-                        enabled = isValid,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                        onClick = onCancel,
+                        modifier = Modifier.height(44.dp)
                     ) {
-                        Text(
-                            text = "Done ($totalPagesInBatch ${if (totalPagesInBatch == 1) "page" else "pages"})",
-                            color = if (isValid) brandGreen else Color.Gray,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp
-                        )
+                        Text("Cancel", color = Color.White, fontSize = 15.sp)
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = { if (isValid) onApply(quad, rotation) },
+                        enabled = isValid,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = brandGreen,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(22.dp),
+                        modifier = Modifier.height(44.dp)
+                    ) {
+                        Text("Apply", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    }
+                } else {
+                    TextButton(
+                        onClick = onRetake,
+                        modifier = Modifier.height(44.dp)
+                    ) {
+                        Text("Retake", color = Color.White, fontSize = 15.sp)
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            if (isValid) {
+                                onDone(quad, rotation)
+                            }
+                        },
+                        enabled = isValid,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = brandGreen,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(22.dp),
+                        modifier = Modifier.height(44.dp)
+                    ) {
+                        Text("Continue", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     }
                 }
             }

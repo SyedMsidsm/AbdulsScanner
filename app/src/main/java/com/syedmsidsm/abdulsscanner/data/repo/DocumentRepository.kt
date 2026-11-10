@@ -138,6 +138,170 @@ class DocumentRepository(
         false
     }
 
+    suspend fun deletePages(documentId: String, pageIds: List<String>): Boolean = withContext(Dispatchers.IO) {
+        val pages = pageDao.getByDocumentId(documentId)
+        val remaining = pages.filter { it.id !in pageIds }
+        if (remaining.isEmpty()) {
+            moveToTrash(documentId)
+            return@withContext true
+        }
+
+        for (pageId in pageIds) {
+            fileStore.deletePageFiles(documentId, pageId)
+            pageDao.deleteById(pageId)
+        }
+
+        for ((idx, page) in remaining.withIndex()) {
+            if (page.position != idx) {
+                pageDao.updatePosition(page.id, idx)
+            }
+        }
+
+        val doc = documentDao.getById(documentId)
+        if (doc != null) {
+            documentDao.update(
+                doc.copy(
+                    pageCount = remaining.size,
+                    coverPageId = remaining.firstOrNull()?.id,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+            rebuildPdf(documentId)
+        }
+        false
+    }
+
+    suspend fun duplicatePages(documentId: String, pageIds: List<String>) = withContext(Dispatchers.IO) {
+        val pages = pageDao.getByDocumentId(documentId)
+        var maxPos = pages.maxOfOrNull { it.position } ?: -1
+        val newPages = mutableListOf<PageEntity>()
+
+        for (pageId in pageIds) {
+            val original = pages.firstOrNull { it.id == pageId } ?: continue
+            val newPageId = java.util.UUID.randomUUID().toString()
+            maxPos += 1
+
+            // Copy files
+            val origSrc = fileStore.getPageSrcFile(documentId, original.id)
+            val newSrc = fileStore.getPageSrcFile(documentId, newPageId)
+            if (origSrc.exists()) {
+                origSrc.copyTo(newSrc, overwrite = true)
+            }
+
+            val origRendered = fileStore.getPageRenderedFile(documentId, original.id)
+            val newRendered = fileStore.getPageRenderedFile(documentId, newPageId)
+            if (origRendered.exists()) {
+                origRendered.copyTo(newRendered, overwrite = true)
+            }
+
+            val origThumb = fileStore.getPageThumbFile(documentId, original.id)
+            val newThumb = fileStore.getPageThumbFile(documentId, newPageId)
+            if (origThumb.exists()) {
+                origThumb.copyTo(newThumb, overwrite = true)
+            }
+
+            val duplicated = original.copy(
+                id = newPageId,
+                position = maxPos,
+                createdAt = System.currentTimeMillis()
+            )
+            newPages.add(duplicated)
+        }
+
+        if (newPages.isNotEmpty()) {
+            pageDao.insertAll(newPages)
+            val allPages = pageDao.getByDocumentId(documentId)
+            val doc = documentDao.getById(documentId)
+            if (doc != null) {
+                documentDao.update(
+                    doc.copy(
+                        pageCount = allPages.size,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+                rebuildPdf(documentId)
+            }
+        }
+    }
+
+    suspend fun movePagesToDocument(fromDocId: String, pageIds: List<String>, toDocId: String) = withContext(Dispatchers.IO) {
+        val targetPages = pageDao.getByDocumentId(toDocId)
+        var maxPos = targetPages.maxOfOrNull { it.position } ?: -1
+
+        val fromPages = pageDao.getByDocumentId(fromDocId)
+        for (pageId in pageIds) {
+            val page = fromPages.firstOrNull { it.id == pageId } ?: continue
+            maxPos += 1
+
+            // Move files from docs/fromDocId/ to docs/toDocId/
+            val oldSrc = fileStore.getPageSrcFile(fromDocId, page.id)
+            val newSrc = fileStore.getPageSrcFile(toDocId, page.id)
+            if (oldSrc.exists()) oldSrc.copyTo(newSrc, overwrite = true).also { oldSrc.delete() }
+
+            val oldRendered = fileStore.getPageRenderedFile(fromDocId, page.id)
+            val newRendered = fileStore.getPageRenderedFile(toDocId, page.id)
+            if (oldRendered.exists()) oldRendered.copyTo(newRendered, overwrite = true).also { oldRendered.delete() }
+
+            val oldThumb = fileStore.getPageThumbFile(fromDocId, page.id)
+            val newThumb = fileStore.getPageThumbFile(toDocId, page.id)
+            if (oldThumb.exists()) oldThumb.copyTo(newThumb, overwrite = true).also { oldThumb.delete() }
+
+            pageDao.update(page.copy(documentId = toDocId, position = maxPos))
+        }
+
+        // Reindex source document
+        val remainingFrom = pageDao.getByDocumentId(fromDocId)
+        if (remainingFrom.isEmpty()) {
+            moveToTrash(fromDocId)
+        } else {
+            for ((idx, p) in remainingFrom.withIndex()) {
+                if (p.position != idx) pageDao.updatePosition(p.id, idx)
+            }
+            val fromDoc = documentDao.getById(fromDocId)
+            if (fromDoc != null) {
+                documentDao.update(
+                    fromDoc.copy(
+                        pageCount = remainingFrom.size,
+                        coverPageId = remainingFrom.firstOrNull()?.id,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+                rebuildPdf(fromDocId)
+            }
+        }
+
+        // Update target document
+        val updatedToPages = pageDao.getByDocumentId(toDocId)
+        val toDoc = documentDao.getById(toDocId)
+        if (toDoc != null) {
+            documentDao.update(
+                toDoc.copy(
+                    pageCount = updatedToPages.size,
+                    coverPageId = updatedToPages.firstOrNull()?.id,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+            rebuildPdf(toDocId)
+        }
+    }
+
+    suspend fun movePagesToNewDoc(fromDocId: String, pageIds: List<String>, newDocName: String): String = withContext(Dispatchers.IO) {
+        val newDocId = java.util.UUID.randomUUID().toString()
+        val now = System.currentTimeMillis()
+        val newDoc = DocumentEntity(
+            id = newDocId,
+            name = newDocName.trim().ifEmpty { "New Document" },
+            kind = com.syedmsidsm.abdulsscanner.data.db.entity.DocumentKind.SCAN.name,
+            pageSize = "A4",
+            createdAt = now,
+            updatedAt = now,
+            pageCount = 0
+        )
+        documentDao.insert(newDoc)
+        movePagesToDocument(fromDocId, pageIds, newDocId)
+        newDocId
+    }
+
     suspend fun reorderPages(documentId: String, pageIdsInOrder: List<String>) = withContext(Dispatchers.IO) {
         for ((idx, pageId) in pageIdsInOrder.withIndex()) {
             pageDao.updatePosition(pageId, idx)

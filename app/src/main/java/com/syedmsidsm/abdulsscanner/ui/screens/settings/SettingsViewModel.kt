@@ -37,6 +37,7 @@ data class SettingsUiState(
     val cropAfterEachScan: Boolean = true,
     val muteShutter: Boolean = false,
     val bookDirection: String = "LTR",
+    val offerNewScreenshots: Boolean = false,
     val docCount: Int = 0,
     val pageCount: Int = 0,
     val appStorageBytes: Long = 0L,
@@ -111,6 +112,9 @@ class SettingsViewModel(
         }
         viewModelScope.launch {
             settings.bookDirection.collect { _uiState.value = _uiState.value.copy(bookDirection = it) }
+        }
+        viewModelScope.launch {
+            settings.offerNewScreenshots.collect { _uiState.value = _uiState.value.copy(offerNewScreenshots = it) }
         }
     }
 
@@ -204,6 +208,10 @@ class SettingsViewModel(
 
     fun setBookDirection(direction: String) {
         viewModelScope.launch { settings.setBookDirection(direction) }
+    }
+
+    fun setOfferNewScreenshots(enabled: Boolean) {
+        viewModelScope.launch { settings.setOfferNewScreenshots(enabled) }
     }
 
     fun reReadPages() {

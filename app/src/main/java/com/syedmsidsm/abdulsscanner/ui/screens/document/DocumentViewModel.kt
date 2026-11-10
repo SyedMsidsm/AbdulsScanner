@@ -125,6 +125,62 @@ class DocumentViewModel(
         }
     }
 
+    fun deletePages(pageIds: List<String>, onAllDeleted: () -> Unit) {
+        viewModelScope.launch {
+            _isUpdatingPdf.value = true
+            try {
+                val wholeDocMoved = documentRepository.deletePages(docId, pageIds)
+                if (wholeDocMoved) {
+                    onAllDeleted()
+                }
+            } finally {
+                _isUpdatingPdf.value = false
+            }
+        }
+    }
+
+    fun duplicatePages(pageIds: List<String>) {
+        viewModelScope.launch {
+            _isUpdatingPdf.value = true
+            try {
+                documentRepository.duplicatePages(docId, pageIds)
+            } finally {
+                _isUpdatingPdf.value = false
+            }
+        }
+    }
+
+    fun movePagesToDocument(pageIds: List<String>, targetDocId: String, onSourceEmpty: () -> Unit) {
+        viewModelScope.launch {
+            _isUpdatingPdf.value = true
+            try {
+                documentRepository.movePagesToDocument(docId, pageIds, targetDocId)
+                val remaining = documentRepository.getPages(docId)
+                if (remaining.isEmpty()) {
+                    onSourceEmpty()
+                }
+            } finally {
+                _isUpdatingPdf.value = false
+            }
+        }
+    }
+
+    fun movePagesToNewDoc(pageIds: List<String>, newDocName: String, onComplete: (String) -> Unit) {
+        viewModelScope.launch {
+            _isUpdatingPdf.value = true
+            try {
+                val newDocId = documentRepository.movePagesToNewDoc(docId, pageIds, newDocName)
+                onComplete(newDocId)
+            } finally {
+                _isUpdatingPdf.value = false
+            }
+        }
+    }
+
+    fun getOtherDocuments(): kotlinx.coroutines.flow.Flow<List<DocumentEntity>> {
+        return documentRepository.observeDocuments(com.syedmsidsm.abdulsscanner.data.settings.SortOrder.UPDATED)
+    }
+
     fun addScannedPages(uris: List<Uri>) {
         if (uris.isEmpty()) return
         viewModelScope.launch {

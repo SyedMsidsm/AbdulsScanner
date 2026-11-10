@@ -1,6 +1,12 @@
 package com.syedmsidsm.abdulsscanner.ui.screens.settings
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -69,6 +75,7 @@ fun SettingsScreen(
     onNavigateToSecurity: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     var showFilterDropdown by remember { mutableStateOf(false) }
     var showPageSizeDropdown by remember { mutableStateOf(false) }
@@ -78,6 +85,12 @@ fun SettingsScreen(
     var showThemeDropdown by remember { mutableStateOf(false) }
     var showOcrLangDropdown by remember { mutableStateOf(false) }
     var showReReadConfirmDialog by remember { mutableStateOf(false) }
+
+    val screenshotPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        viewModel.setOfferNewScreenshots(granted)
+    }
 
     Scaffold(
         topBar = {
@@ -522,7 +535,44 @@ fun SettingsScreen(
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                    // 11. HD scans (Google scanner and imports)
+                    // 11. Offer new screenshots
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Offer new screenshots", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "Show card on home to scan screenshots taken in last 10 minutes",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = uiState.offerNewScreenshots,
+                            onCheckedChange = { enable ->
+                                if (enable) {
+                                    val perm = if (Build.VERSION.SDK_INT >= 33) {
+                                        Manifest.permission.READ_MEDIA_IMAGES
+                                    } else {
+                                        Manifest.permission.READ_EXTERNAL_STORAGE
+                                    }
+                                    if (ContextCompat.checkSelfPermission(context, perm) == PackageManager.PERMISSION_GRANTED) {
+                                        viewModel.setOfferNewScreenshots(true)
+                                    } else {
+                                        screenshotPermissionLauncher.launch(perm)
+                                    }
+                                } else {
+                                    viewModel.setOfferNewScreenshots(false)
+                                }
+                            }
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // 12. HD scans (Google scanner and imports)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,

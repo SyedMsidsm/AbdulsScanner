@@ -2,6 +2,39 @@
 
 All notable changes to **Abul's Scanner** will be documented in this file.
 
+## [1.0.2] - 2026-11-10
+
+### Fixed & Refined (Fix Pack 2)
+- **Live Capture Guidance (Phase 8 Camera, FIXES-2 §1)**:
+  - Implemented 1:1 Kotlin port of `reference_guidance.py` in `CaptureGuidance.kt` with states `SEARCHING`, `MOVE_CLOSER` (< 0.25 area), `MOVE_FARTHER` (> 0.92 area), `HOLD_STILL`, and `CAPTURING`.
+  - Driven by `PageDetector.detectPage(bgrMat)` on camera analysis frames (~640 px).
+  - Displays centered guidance pill ("Searching for a page…", "Move closer", "Move farther", "Hold still…", "Capturing…") at ~55% height of viewfinder.
+  - Draws green bounding quad outline whenever a page is detected (all states except `SEARCHING`).
+  - Auto-shutter automatically triggers capture when quad is steady (corners moved < 2% of frame diagonal) for >= 1000 ms, followed by a 1500 ms cooldown. Manual shutter remains functional in any state.
+  - Unit test `CaptureGuidanceTest.kt` passes 100% covering all state transitions, jitter reset, steady timing, and cooldown rejection.
+- **Portrait Lock (Fixes Camera Tilt / Sideways Stretch Bug, FIXES-2 §2)**:
+  - Locked entire application to portrait by declaring `android:screenOrientation="portrait"` and `android:configChanges="orientation|screenSize|keyboardHidden|uiMode"` on `MainActivity` in `AndroidManifest.xml`.
+  - Configured CameraX `Preview`, `ImageCapture`, and `ImageAnalysis` target rotations to `Surface.ROTATION_0`, ensuring preview and captured frames remain strictly upright and unstretched when tilting the phone 90°.
+- **Screenshot Offering Card on Home (FIXES-2 §3)**:
+  - Queries `MediaStore.Images` via `ScreenshotDetector.kt` for screenshots captured in the last 10 minutes.
+  - Non-blocking one-time in-app card on first launch explaining screenshot detection with **Allow** and **No thanks** buttons.
+  - Added permissions `READ_MEDIA_IMAGES` / `READ_MEDIA_VISUAL_USER_SELECTED` (Android 13/14+) and `READ_EXTERNAL_STORAGE` (API <= 32). Zero other permissions added.
+  - Settings → Scanning toggle switch "Offer new screenshots" allowing users to enable/disable anytime.
+  - Displays bottom-right card above bottom bar with preview thumbnail, "New screenshot", "Tap to scan it", and `✕` dismiss button (which adds ID to `dismissedScreenshotIds`, storing last 50).
+  - Tapping card opens the scan flow at Review & filter screen with the screenshot as page 1.
+- **Crop Screen OKEN-Style Refinements (FIXES-2 §4)**:
+  - Top bar title set to "Adjust crop".
+  - 8 handles total: 4 corner handles and 4 mid-edge handles. Dragging mid-edge moves that entire edge parallel; dragging corner moves just that corner.
+  - 2.6× magnifier loupe active on all 8 handles, dynamically avoiding the user's finger.
+  - Added "Auto Crop" toggle at bottom-left (default ON). When OFF, resets handles to the full photo bounds (`Quad.fullQuad()`); when ON, restores detected page quad.
+  - Action row in a single line: Auto Crop toggle, spacer, Retake text button, and filled green Continue button.
+  - Helper line under image: "Drag the dots to the page corners, or adjust later with the crop tool".
+- **Document Screen & Page-Select Mode (FIXES-2 §5 & §6)**:
+  - 2-column page grid with page badges `01`, `02`; last tile dashed "Tap 📷➕ to add new pages".
+  - Top bar with rename and checkmark circle `✓` button to toggle page-select mode.
+  - 5-action bottom bar in Document Screen: **Add**, **Collage**, **Share**, **Edit PDF** (opens page editor on page 1), **More** (Save PDF to…, Save JPGs, Print, Password, Compress, Page size, Lock/Unlock, Book split, Move to recycle bin).
+  - Page-select mode: top bar with `←`, "{n} selected", "Select all" / "Deselect all"; thumbnail selection check badges; 5-action bottom bar: **Share**, **Save to Gallery**, **Move** (to existing or new document), **Delete** (with undo snackbar), **More** (Copy [duplicate pages in doc], Collage [make collage from selected pages]).
+
 ## [1.0.1] - 2026-11-10
 
 ### Fixed

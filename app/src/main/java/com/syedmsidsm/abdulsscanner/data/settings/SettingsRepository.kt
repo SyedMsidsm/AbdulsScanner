@@ -69,6 +69,9 @@ class SettingsRepository(private val context: Context) {
         val CROP_AFTER_EACH_SCAN = booleanPreferencesKey("crop_after_each_scan")
         val MUTE_SHUTTER = booleanPreferencesKey("mute_shutter")
         val RENAMED_TO_ABUL = booleanPreferencesKey("renamed_to_abul")
+        val OFFER_NEW_SCREENSHOTS = booleanPreferencesKey("offer_new_screenshots")
+        val SCREENSHOT_FEATURE_DECLINED = booleanPreferencesKey("screenshot_feature_declined")
+        val DISMISSED_SCREENSHOT_IDS = stringPreferencesKey("dismissed_screenshot_ids")
     }
 
     val theme: Flow<String> = context.dataStore.data.map { it[Keys.THEME] ?: "DARK" }
@@ -103,6 +106,12 @@ class SettingsRepository(private val context: Context) {
     val cropAfterEachScan: Flow<Boolean> = context.dataStore.data.map { it[Keys.CROP_AFTER_EACH_SCAN] ?: true }
     val muteShutter: Flow<Boolean> = context.dataStore.data.map { it[Keys.MUTE_SHUTTER] ?: false }
     val renamedToAbul: Flow<Boolean> = context.dataStore.data.map { it[Keys.RENAMED_TO_ABUL] ?: false }
+    val offerNewScreenshots: Flow<Boolean> = context.dataStore.data.map { it[Keys.OFFER_NEW_SCREENSHOTS] ?: false }
+    val screenshotFeatureDeclined: Flow<Boolean> = context.dataStore.data.map { it[Keys.SCREENSHOT_FEATURE_DECLINED] ?: false }
+    val dismissedScreenshotIds: Flow<Set<String>> = context.dataStore.data.map {
+        val raw = it[Keys.DISMISSED_SCREENSHOT_IDS].orEmpty()
+        if (raw.isBlank()) emptySet() else raw.split(",").toSet()
+    }
 
     suspend fun setTheme(theme: String) = context.dataStore.edit { it[Keys.THEME] = theme }
     suspend fun setDefaultFilter(filter: String) = context.dataStore.edit { it[Keys.DEFAULT_FILTER] = filter }
@@ -147,4 +156,13 @@ class SettingsRepository(private val context: Context) {
     suspend fun setCropAfterEachScan(enabled: Boolean) = context.dataStore.edit { it[Keys.CROP_AFTER_EACH_SCAN] = enabled }
     suspend fun setMuteShutter(enabled: Boolean) = context.dataStore.edit { it[Keys.MUTE_SHUTTER] = enabled }
     suspend fun setRenamedToAbul(renamed: Boolean) = context.dataStore.edit { it[Keys.RENAMED_TO_ABUL] = renamed }
+    suspend fun setOfferNewScreenshots(enabled: Boolean) = context.dataStore.edit { it[Keys.OFFER_NEW_SCREENSHOTS] = enabled }
+    suspend fun setScreenshotFeatureDeclined(declined: Boolean) = context.dataStore.edit { it[Keys.SCREENSHOT_FEATURE_DECLINED] = declined }
+    suspend fun addDismissedScreenshotId(id: String) = context.dataStore.edit {
+        val current = (it[Keys.DISMISSED_SCREENSHOT_IDS]?.split(",")?.filter { s -> s.isNotBlank() } ?: emptyList()).toMutableList()
+        current.remove(id)
+        current.add(id)
+        val trimmed = if (current.size > 50) current.takeLast(50) else current
+        it[Keys.DISMISSED_SCREENSHOT_IDS] = trimmed.joinToString(",")
+    }
 }

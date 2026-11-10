@@ -266,6 +266,10 @@ class MainActivity : ComponentActivity() {
                             onShareMultiplePdfs = { docs -> shareMultipleDocumentPdfs(docs) },
                             onNavigateToCamera = { mode ->
                                 navController.navigate(Routes.camera(mode))
+                            },
+                            settingsRepository = container.settingsRepository,
+                            onNavigateToScanReview = {
+                                navController.navigate(Routes.scanReview())
                             }
                         )
                     }
@@ -309,6 +313,15 @@ class MainActivity : ComponentActivity() {
                             },
                             onNavigateToCamera = { dId ->
                                 navController.navigate(Routes.camera("DOCS", dId))
+                            },
+                            onNavigateToCollage = {
+                                navController.navigate(Routes.COLLAGE)
+                            },
+                            onNavigateToPassword = {
+                                navController.navigate(Routes.TOOL_PASSWORD)
+                            },
+                            onNavigateToCompress = {
+                                navController.navigate(Routes.TOOL_COMPRESS)
                             },
                             onSharePdf = { doc -> shareDocumentPdf(doc) },
                             onShareJpg = { doc -> shareDocumentJpgs(doc) },

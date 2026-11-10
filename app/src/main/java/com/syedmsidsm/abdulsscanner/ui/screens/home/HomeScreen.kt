@@ -1,7 +1,29 @@
 package com.syedmsidsm.abdulsscanner.ui.screens.home
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.database.ContentObserver
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.provider.MediaStore
+import androidx.core.content.ContextCompat
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.syedmsidsm.abdulsscanner.data.db.entity.PageFilter
+import com.syedmsidsm.abdulsscanner.data.settings.SettingsRepository
+import com.syedmsidsm.abdulsscanner.domain.scan.ScanPage
+import com.syedmsidsm.abdulsscanner.domain.scan.ScanSession
+import com.syedmsidsm.abdulsscanner.domain.scan.ScreenshotDetector
+import com.syedmsidsm.abdulsscanner.domain.scan.ScreenshotItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.util.UUID
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -66,6 +88,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -108,7 +131,9 @@ fun HomeScreen(
     onNavigateToTags: () -> Unit,
     onSharePdf: (DocumentEntity) -> Unit,
     onShareMultiplePdfs: (List<DocumentEntity>) -> Unit = {},
-    onNavigateToCamera: (String) -> Unit = {}
+    onNavigateToCamera: (String) -> Unit = {},
+    settingsRepository: SettingsRepository? = null,
+    onNavigateToScanReview: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -123,6 +148,72 @@ fun HomeScreen(
     var showSelectTagSheet by remember { mutableStateOf(false) }
     var chosenTagIdsForSelection by remember { mutableStateOf(setOf<Long>()) }
     var scannerErrorMsg by remember { mutableStateOf<String?>(null) }
+
+    // Screenshot Offering (FIXES-2 §3)
+    val offerNewScreenshots = settingsRepository?.offerNewScreenshots?.collectAsStateWithLifecycle(initialValue = false)?.value ?: false
+    val screenshotFeatureDeclined = settingsRepository?.screenshotFeatureDeclined?.collectAsStateWithLifecycle(initialValue = false)?.value ?: false
+    val dismissedScreenshotIds = settingsRepository?.dismissedScreenshotIds?.collectAsStateWithLifecycle(initialValue = emptySet())?.value ?: emptySet()
+
+    var hasPhotoPermission by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED ||
+                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+                 ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == PackageManager.PERMISSION_GRANTED)
+            } else {
+                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+            }
+        )
+    }
+
+    val photoPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasPhotoPermission = granted
+        if (granted && settingsRepository != null) {
+            scope.launch {
+                settingsRepository.setOfferNewScreenshots(true)
+            }
+        }
+    }
+
+    var newestScreenshot by remember { mutableStateOf<ScreenshotItem?>(null) }
+
+    fun refreshScreenshot() {
+        if (!offerNewScreenshots || !hasPhotoPermission) {
+            newestScreenshot = null
+            return
+        }
+        scope.launch(Dispatchers.IO) {
+            val item = ScreenshotDetector.findNewestScreenshot(context, dismissedScreenshotIds)
+            withContext(Dispatchers.Main) {
+                newestScreenshot = item
+            }
+        }
+    }
+
+    LaunchedEffect(offerNewScreenshots, hasPhotoPermission, dismissedScreenshotIds) {
+        refreshScreenshot()
+    }
+
+    DisposableEffect(offerNewScreenshots, hasPhotoPermission) {
+        if (!offerNewScreenshots || !hasPhotoPermission) {
+            return@DisposableEffect onDispose {}
+        }
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                refreshScreenshot()
+            }
+        }
+        context.contentResolver.registerContentObserver(
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            true,
+            observer
+        )
+        onDispose {
+            context.contentResolver.unregisterContentObserver(observer)
+        }
+    }
 
     // Unfinished Session Recovery (Section 1.1 & fix-05-recover-session.png)
     var unfinishedSession by remember { mutableStateOf<com.syedmsidsm.abdulsscanner.domain.scan.ScanSession?>(null) }
@@ -745,6 +836,148 @@ fun HomeScreen(
                                     onMoveToTrash = { viewModel.moveToTrash(doc.id) }
                                 )
                             }
+                        }
+                    }
+                }
+            }
+
+            // One-time ask card (FIXES-2 §3.2)
+            if (!offerNewScreenshots && !screenshotFeatureDeclined && !hasPhotoPermission && settingsRepository != null) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shadowElevation = 6.dp,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 76.dp, end = 16.dp, start = 48.dp)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Text(
+                            text = "Show new screenshots here?",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Abul's Scanner can offer a screenshot to scan right after you take one. It only reads your newest screenshot, nothing else.",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(
+                                onClick = {
+                                    scope.launch {
+                                        settingsRepository.setScreenshotFeatureDeclined(true)
+                                    }
+                                }
+                            ) {
+                                Text("No thanks")
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(
+                                onClick = {
+                                    val perm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        Manifest.permission.READ_MEDIA_IMAGES
+                                    } else {
+                                        Manifest.permission.READ_EXTERNAL_STORAGE
+                                    }
+                                    photoPermissionLauncher.launch(perm)
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            ) {
+                                Text("Allow")
+                            }
+                        }
+                    }
+                }
+            }
+
+            // New Screenshot Card (FIXES-2 §3.1 & f2-06-screenshot-card.png)
+            newestScreenshot?.let { screenshot ->
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shadowElevation = 6.dp,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 76.dp, end = 16.dp)
+                        .clickable {
+                            scope.launch(Dispatchers.IO) {
+                                val sessionId = UUID.randomUUID().toString()
+                                val sessionDir = ScanSession.getSessionDir(context, sessionId)
+                                sessionDir.mkdirs()
+                                val pageId = UUID.randomUUID().toString()
+                                val destFile = File(sessionDir, "$pageId.jpg")
+                                context.contentResolver.openInputStream(screenshot.uri)?.use { input ->
+                                    destFile.outputStream().use { output -> input.copyTo(output) }
+                                }
+                                val scanPage = ScanPage(
+                                    id = pageId,
+                                    filePath = destFile.absolutePath,
+                                    cropQuad = null,
+                                    rotation = 0,
+                                    filter = PageFilter.ORIGINAL
+                                )
+                                val newSession = ScanSession(
+                                    sessionId = sessionId,
+                                    pages = listOf(scanPage)
+                                )
+                                ScanSession.save(context, newSession)
+                                withContext(Dispatchers.Main) {
+                                    newestScreenshot = null
+                                    onNavigateToScanReview()
+                                }
+                            }
+                        }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AsyncImage(
+                            model = screenshot.uri,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(RoundedCornerShape(6.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "New screenshot",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Tap to scan it",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    settingsRepository?.addDismissedScreenshotId(screenshot.id.toString())
+                                    newestScreenshot = null
+                                }
+                            },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Close,
+                                contentDescription = "Dismiss",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }

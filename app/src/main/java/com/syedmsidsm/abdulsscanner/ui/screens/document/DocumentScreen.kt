@@ -1,11 +1,14 @@
 package com.syedmsidsm.abdulsscanner.ui.screens.document
 
 import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,10 +22,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,23 +36,31 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.AspectRatio
+import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Compress
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Draw
+import androidx.compose.material.icons.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Label
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Print
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -61,6 +73,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -82,6 +96,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -98,8 +113,11 @@ import com.syedmsidsm.abdulsscanner.data.db.entity.PageEntity
 import com.syedmsidsm.abdulsscanner.data.files.FileStore
 import com.syedmsidsm.abdulsscanner.data.settings.SettingsRepository
 import com.syedmsidsm.abdulsscanner.domain.files.MediaStoreExporter
+import com.syedmsidsm.abdulsscanner.domain.imaging.BitmapIo
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -116,15 +134,28 @@ fun DocumentScreen(
     onNavigateToWatermark: ((String) -> Unit)? = null,
     onNavigateToSign: ((String) -> Unit)? = null,
     onNavigateToCamera: ((String) -> Unit)? = null,
+    onNavigateToCollage: (() -> Unit)? = null,
+    onNavigateToPassword: (() -> Unit)? = null,
+    onNavigateToCompress: (() -> Unit)? = null,
     onSharePdf: (DocumentEntity) -> Unit,
     onShareJpg: (DocumentEntity) -> Unit,
     onPrint: (DocumentEntity) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     val uiState by viewModel.uiState.collectAsState()
     val cameraEngine by settingsRepository.cameraEngine.collectAsStateWithLifecycle(initialValue = "BUILT_IN")
     val doc = uiState.document
+
+    // Page-select mode states (FIXES-2 §6)
+    var isSelectMode by remember { mutableStateOf(false) }
+    var selectedPageIds by remember { mutableStateOf(setOf<String>()) }
+    var showSelectMoreMenu by remember { mutableStateOf(false) }
+    var showMoveDialog by remember { mutableStateOf(false) }
+    var moveNewDocName by remember { mutableStateOf("") }
+    var showCreateNewDocForMove by remember { mutableStateOf(false) }
+    val otherDocuments by viewModel.getOtherDocuments().collectAsState(initial = emptyList())
 
     var isReordering by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
@@ -140,6 +171,11 @@ fun DocumentScreen(
     var showNoPinDialog by remember { mutableStateOf(false) }
     var showPageSelectForBookSplit by remember { mutableStateOf(false) }
     val allTags by viewModel.allTags.collectAsState(initial = emptyList())
+
+    BackHandler(enabled = isSelectMode) {
+        isSelectMode = false
+        selectedPageIds = emptySet()
+    }
 
     // Add pages scanner launcher
     val addScannerLauncher = rememberLauncherForActivityResult(
@@ -186,6 +222,7 @@ fun DocumentScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             if (isReordering) {
                 TopAppBar(
@@ -199,7 +236,46 @@ fun DocumentScreen(
                         containerColor = MaterialTheme.colorScheme.background
                     )
                 )
+            } else if (isSelectMode) {
+                // Top bar in page-select mode per FIXES-2 §6
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "${selectedPageIds.size} selected",
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            isSelectMode = false
+                            selectedPageIds = emptySet()
+                        }) {
+                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Exit selection")
+                        }
+                    },
+                    actions = {
+                        val allSelected = (selectedPageIds.size == uiState.pages.size && uiState.pages.isNotEmpty())
+                        TextButton(
+                            onClick = {
+                                selectedPageIds = if (allSelected) {
+                                    emptySet()
+                                } else {
+                                    uiState.pages.map { it.id }.toSet()
+                                }
+                            }
+                        ) {
+                            Text(
+                                text = if (allSelected) "Deselect all" else "Select all",
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
+                )
             } else {
+                // Top bar in normal mode per FIXES-2 §5: Back, doc name (tap / ✎ to rename), checkmark icon
                 TopAppBar(
                     title = {
                         Row(
@@ -236,11 +312,19 @@ fun DocumentScreen(
                         }
                     },
                     actions = {
+                        // Check/select icon (enters page-select mode per FIXES-2 §5)
+                        IconButton(onClick = {
+                            isSelectMode = true
+                            selectedPageIds = emptySet()
+                        }) {
+                            Icon(
+                                imageVector = Icons.Outlined.CheckCircle,
+                                contentDescription = "Select pages",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                         IconButton(onClick = { showTagSheet = true }) {
                             Icon(Icons.Outlined.Label, contentDescription = "Tags")
-                        }
-                        IconButton(onClick = { isReordering = true }) {
-                            Icon(Icons.AutoMirrored.Outlined.Sort, contentDescription = "Reorder pages")
                         }
                         Box {
                             IconButton(onClick = { showTopOverflow = true }) {
@@ -250,6 +334,14 @@ fun DocumentScreen(
                                 expanded = showTopOverflow,
                                 onDismissRequest = { showTopOverflow = false }
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Reorder pages") },
+                                    leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Sort, null) },
+                                    onClick = {
+                                        showTopOverflow = false
+                                        isReordering = true
+                                    }
+                                )
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.action_recycle_bin), color = MaterialTheme.colorScheme.error) },
                                     leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = MaterialTheme.colorScheme.error) },
@@ -269,56 +361,204 @@ fun DocumentScreen(
             }
         },
         bottomBar = {
-            // Document Screen Bottom Action Bar
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 8.dp
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Share
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable { showShareSheet = true }
-                    ) {
-                        Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.action_share_pdf), tint = MaterialTheme.colorScheme.primary)
-                        Text(stringResource(R.string.action_share_pdf), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
-                    }
+                if (isSelectMode) {
+                    // Page-Select Mode Bottom Bar (5 actions per FIXES-2 §6: Share, Save to Gallery, Move, Delete, More)
+                    val hasSelection = selectedPageIds.isNotEmpty()
+                    val activeTint = MaterialTheme.colorScheme.primary
+                    val disabledTint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
 
-                    // To Text
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable { onNavigateToOcr(doc.id) }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Outlined.TextFields, contentDescription = stringResource(R.string.to_text), tint = MaterialTheme.colorScheme.primary)
-                        Text(stringResource(R.string.to_text), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
-                    }
-
-                    // Sign
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable {
-                            val firstPage = uiState.pages.firstOrNull()?.id ?: ""
-                            onNavigateToPage(doc.id, firstPage)
+                        // 1. Share
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable(enabled = hasSelection) {
+                                    showShareSheet = true
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Outlined.Share, contentDescription = "Share", tint = if (hasSelection) activeTint else disabledTint)
+                            Text("Share", fontSize = 11.sp, color = if (hasSelection) MaterialTheme.colorScheme.onSurface else disabledTint)
                         }
-                    ) {
-                        Icon(Icons.Outlined.Draw, contentDescription = stringResource(R.string.sign), tint = MaterialTheme.colorScheme.primary)
-                        Text(stringResource(R.string.sign), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
-                    }
 
-                    // More
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable { showMoreSheet = true }
+                        // 2. Save to Gallery
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable(enabled = hasSelection) {
+                                    scope.launch(Dispatchers.IO) {
+                                        val count = selectedPageIds.size
+                                        for (pid in selectedPageIds) {
+                                            val p = uiState.pages.firstOrNull { it.id == pid } ?: continue
+                                            val renderedFile = fileStore.getPageRenderedFile(doc.id, p.id)
+                                            if (renderedFile.exists()) {
+                                                val bmp = BitmapIo.decodeUpright(renderedFile, maxLongSide = 4000)
+                                                MediaStoreExporter.exportBitmapToGallery(context, bmp, "${doc.name}_page_${p.position + 1}")
+                                                bmp.recycle()
+                                            }
+                                        }
+                                        withContext(Dispatchers.Main) {
+                                            isSelectMode = false
+                                            selectedPageIds = emptySet()
+                                            snackbarHostState.showSnackbar("Saved $count ${if (count == 1) "page" else "pages"} to Gallery")
+                                        }
+                                    }
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Outlined.Image, contentDescription = "Save to Gallery", tint = if (hasSelection) activeTint else disabledTint)
+                            Text("Gallery", fontSize = 11.sp, color = if (hasSelection) MaterialTheme.colorScheme.onSurface else disabledTint)
+                        }
+
+                        // 3. Move
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable(enabled = hasSelection) {
+                                    showMoveDialog = true
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Outlined.DriveFileMove, contentDescription = "Move", tint = if (hasSelection) activeTint else disabledTint)
+                            Text("Move", fontSize = 11.sp, color = if (hasSelection) MaterialTheme.colorScheme.onSurface else disabledTint)
+                        }
+
+                        // 4. Delete
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable(enabled = hasSelection) {
+                                    val toDelete = selectedPageIds.toList()
+                                    viewModel.deletePages(toDelete) {
+                                        onNavigateBack()
+                                    }
+                                    isSelectMode = false
+                                    selectedPageIds = emptySet()
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Deleted ${toDelete.size} ${if (toDelete.size == 1) "page" else "pages"}")
+                                    }
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Outlined.Delete, contentDescription = "Delete", tint = if (hasSelection) MaterialTheme.colorScheme.error else disabledTint)
+                            Text("Delete", fontSize = 11.sp, color = if (hasSelection) MaterialTheme.colorScheme.error else disabledTint)
+                        }
+
+                        // 5. More (Copy, Collage)
+                        Box {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clip(MaterialTheme.shapes.small)
+                                    .clickable(enabled = hasSelection) {
+                                        showSelectMoreMenu = true
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Icon(Icons.Outlined.MoreHoriz, contentDescription = "More", tint = if (hasSelection) activeTint else disabledTint)
+                                Text("More", fontSize = 11.sp, color = if (hasSelection) MaterialTheme.colorScheme.onSurface else disabledTint)
+                            }
+
+                            DropdownMenu(
+                                expanded = showSelectMoreMenu,
+                                onDismissRequest = { showSelectMoreMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Copy (duplicate in doc)") },
+                                    leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) },
+                                    onClick = {
+                                        showSelectMoreMenu = false
+                                        viewModel.duplicatePages(selectedPageIds.toList())
+                                        isSelectMode = false
+                                        selectedPageIds = emptySet()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Collage from selected") },
+                                    leadingIcon = { Icon(Icons.Outlined.GridView, null) },
+                                    onClick = {
+                                        showSelectMoreMenu = false
+                                        onNavigateToCollage?.invoke()
+                                        isSelectMode = false
+                                        selectedPageIds = emptySet()
+                                    }
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    // Normal Document Screen Bottom Action Bar (5 actions per FIXES-2 §5: Add, Collage, Share, Edit PDF, More)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Outlined.MoreHoriz, contentDescription = stringResource(R.string.more), tint = MaterialTheme.colorScheme.primary)
-                        Text(stringResource(R.string.more), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                        // 1. Add
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.clickable { showAddSheet = true }
+                        ) {
+                            Icon(Icons.Outlined.Add, contentDescription = "Add", tint = MaterialTheme.colorScheme.primary)
+                            Text("Add", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                        }
+
+                        // 2. Collage
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.clickable { onNavigateToCollage?.invoke() }
+                        ) {
+                            Icon(Icons.Outlined.GridView, contentDescription = "Collage", tint = MaterialTheme.colorScheme.primary)
+                            Text("Collage", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                        }
+
+                        // 3. Share
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.clickable { showShareSheet = true }
+                        ) {
+                            Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.action_share_pdf), tint = MaterialTheme.colorScheme.primary)
+                            Text(stringResource(R.string.action_share_pdf), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                        }
+
+                        // 4. Edit PDF (opens page editor for first page)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.clickable {
+                                val firstPage = uiState.pages.firstOrNull()?.id.orEmpty()
+                                if (firstPage.isNotEmpty()) {
+                                    onNavigateToPage(doc.id, firstPage)
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Outlined.Edit, contentDescription = "Edit PDF", tint = MaterialTheme.colorScheme.primary)
+                            Text("Edit PDF", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                        }
+
+                        // 5. More
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.clickable { showMoreSheet = true }
+                        ) {
+                            Icon(Icons.Outlined.MoreHoriz, contentDescription = stringResource(R.string.more), tint = MaterialTheme.colorScheme.primary)
+                            Text(stringResource(R.string.more), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                        }
                     }
                 }
             }
@@ -351,9 +591,9 @@ fun DocumentScreen(
                 }
             }
 
-            // Page Grid
+            // Page Grid (2 columns per FIXES-2 §5)
             LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
+                columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -362,7 +602,9 @@ fun DocumentScreen(
                 itemsIndexed(uiState.pages, key = { _, page -> page.id }) { index, page ->
                     PageTile(
                         page = page,
-                        pageNumber = page.position + 1,
+                        pageNumber = index + 1,
+                        isSelectMode = isSelectMode,
+                        isSelected = selectedPageIds.contains(page.id),
                         isReordering = isReordering,
                         canMoveUp = index > 0,
                         canMoveDown = index < uiState.pages.size - 1,
@@ -385,21 +627,135 @@ fun DocumentScreen(
                             }
                         },
                         onClick = {
-                            if (!isReordering) {
+                            if (isSelectMode) {
+                                selectedPageIds = if (selectedPageIds.contains(page.id)) {
+                                    selectedPageIds - page.id
+                                } else {
+                                    selectedPageIds + page.id
+                                }
+                            } else if (!isReordering) {
                                 onNavigateToPage(doc.id, page.id)
+                            }
+                        },
+                        onLongClick = {
+                            if (!isSelectMode && !isReordering) {
+                                isSelectMode = true
+                                selectedPageIds = setOf(page.id)
                             }
                         }
                     )
                 }
 
-                // Last tile: "+ Add"
-                if (!isReordering) {
+                // Last tile: "Tap 📷➕ to add new pages" per FIXES-2 §5
+                if (!isReordering && !isSelectMode) {
                     item {
                         AddPageTile(onClick = { showAddSheet = true })
                     }
                 }
             }
         }
+    }
+
+    // Move Selected Pages Dialog (FIXES-2 §6)
+    if (showMoveDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showMoveDialog = false
+                showCreateNewDocForMove = false
+            },
+            title = { Text("Move ${selectedPageIds.size} ${if (selectedPageIds.size == 1) "page" else "pages"}") },
+            text = {
+                if (showCreateNewDocForMove) {
+                    Column {
+                        Text("Create a new document for these pages:")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = moveNewDocName,
+                            onValueChange = { moveNewDocName = it },
+                            label = { Text("Document name") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                } else {
+                    Column {
+                        Button(
+                            onClick = {
+                                moveNewDocName = "${doc.name} (Part 2)"
+                                showCreateNewDocForMove = true
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Outlined.Add, null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Move to new document")
+                        }
+
+                        val otherDocs = otherDocuments.filter { it.id != doc.id }
+                        if (otherDocs.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Or select an existing document:", fontWeight = FontWeight.SemiBold)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            LazyColumn(modifier = Modifier.height(200.dp)) {
+                                items(otherDocs, key = { it.id }) { targetDoc ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .clickable {
+                                                showMoveDialog = false
+                                                viewModel.movePagesToDocument(selectedPageIds.toList(), targetDoc.id) {
+                                                    onNavigateBack()
+                                                }
+                                                isSelectMode = false
+                                                selectedPageIds = emptySet()
+                                            }
+                                            .padding(vertical = 10.dp, horizontal = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Icons.Outlined.Description, null, tint = MaterialTheme.colorScheme.primary)
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column {
+                                            Text(targetDoc.name, fontWeight = FontWeight.Medium, maxLines = 1)
+                                            Text("${targetDoc.pageCount} pages", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                if (showCreateNewDocForMove) {
+                    Button(
+                        onClick = {
+                            if (moveNewDocName.isNotBlank()) {
+                                showMoveDialog = false
+                                showCreateNewDocForMove = false
+                                viewModel.movePagesToNewDoc(selectedPageIds.toList(), moveNewDocName) {
+                                    isSelectMode = false
+                                    selectedPageIds = emptySet()
+                                }
+                            }
+                        }
+                    ) {
+                        Text("Create & Move")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showMoveDialog = false
+                        showCreateNewDocForMove = false
+                    }
+                ) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
+        )
     }
 
     // Rename Dialog
@@ -435,13 +791,24 @@ fun DocumentScreen(
         )
     }
 
-    // Share Sheet (Section 7)
+    // Share Sheet
     if (showShareSheet) {
+        val pagesToShare = if (isSelectMode && selectedPageIds.isNotEmpty()) {
+            uiState.pages.filter { it.id in selectedPageIds }
+        } else {
+            uiState.pages
+        }
         DocumentShareSheet(
             doc = doc,
-            pages = uiState.pages,
+            pages = pagesToShare,
             fileStore = fileStore,
-            onDismiss = { showShareSheet = false },
+            onDismiss = {
+                showShareSheet = false
+                if (isSelectMode) {
+                    isSelectMode = false
+                    selectedPageIds = emptySet()
+                }
+            },
             onSharePdf = { onSharePdf(doc) },
             onShareJpg = { onShareJpg(doc) }
         )
@@ -465,6 +832,7 @@ fun DocumentScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // Scan with Camera
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -474,17 +842,18 @@ fun DocumentScreen(
                             if (cameraEngine == "GOOGLE_SCANNER") {
                                 launchAddScanner()
                             } else {
-                                onNavigateToCamera?.invoke(doc?.id.orEmpty())
+                                onNavigateToCamera?.invoke(doc.id)
                             }
                         }
                         .padding(vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Outlined.Add, null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Outlined.CameraAlt, null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(16.dp))
-                    Text(stringResource(R.string.scan_more_pages), style = MaterialTheme.typography.bodyLarge)
+                    Text("Scan with camera", style = MaterialTheme.typography.bodyLarge)
                 }
 
+                // Import from gallery
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -496,7 +865,7 @@ fun DocumentScreen(
                         .padding(vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Outlined.Image, null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Outlined.PhotoLibrary, null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(stringResource(R.string.import_from_gallery), style = MaterialTheme.typography.bodyLarge)
                 }
@@ -505,7 +874,7 @@ fun DocumentScreen(
         }
     }
 
-    // More Sheet
+    // More Sheet per FIXES-2 §5
     if (showMoreSheet) {
         ModalBottomSheet(
             onDismissRequest = { showMoreSheet = false },
@@ -523,7 +892,44 @@ fun DocumentScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Print
+                // 1. Save PDF to...
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable {
+                            showMoreSheet = false
+                            onSharePdf(doc)
+                        }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Outlined.Description, null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Save PDF to…", style = MaterialTheme.typography.bodyLarge)
+                }
+
+                // 2. Save JPGs
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable {
+                            showMoreSheet = false
+                            scope.launch {
+                                val count = MediaStoreExporter.exportJpgsToPictures(context, doc, uiState.pages, fileStore)
+                                android.widget.Toast.makeText(context, "Exported $count pages to Pictures/Abul's Scanner", android.widget.Toast.LENGTH_LONG).show()
+                            }
+                        }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Outlined.Image, null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Save JPGs", style = MaterialTheme.typography.bodyLarge)
+                }
+
+                // 3. Print
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -540,7 +946,41 @@ fun DocumentScreen(
                     Text(stringResource(R.string.action_print), style = MaterialTheme.typography.bodyLarge)
                 }
 
-                // Page size
+                // 4. Password
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable {
+                            showMoreSheet = false
+                            onNavigateToPassword?.invoke()
+                        }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Outlined.Lock, null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Password", style = MaterialTheme.typography.bodyLarge)
+                }
+
+                // 5. Compress
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable {
+                            showMoreSheet = false
+                            onNavigateToCompress?.invoke()
+                        }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Outlined.Compress, null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Compress", style = MaterialTheme.typography.bodyLarge)
+                }
+
+                // 6. Page size
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -560,7 +1000,31 @@ fun DocumentScreen(
                     }
                 }
 
-                // Book split
+                // 7. Lock / Unlock
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable {
+                            showMoreSheet = false
+                            scope.launch {
+                                val pinHash = settingsRepository.pinHash.first()
+                                if (pinHash.isNullOrBlank()) {
+                                    showNoPinDialog = true
+                                } else {
+                                    viewModel.toggleLock()
+                                }
+                            }
+                        }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Outlined.Lock, null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(if (doc.locked) "Unlock document" else "Lock document", style = MaterialTheme.typography.bodyLarge)
+                }
+
+                // 8. Book split
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -590,85 +1054,7 @@ fun DocumentScreen(
                     )
                 }
 
-                // Watermark
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small)
-                        .clickable {
-                            showMoreSheet = false
-                            onNavigateToWatermark?.invoke(doc.id)
-                        }
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Outlined.WaterDrop, null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text("Watermark", style = MaterialTheme.typography.bodyLarge)
-                }
-
-                // Sign
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small)
-                        .clickable {
-                            showMoreSheet = false
-                            onNavigateToSign?.invoke(doc.id)
-                        }
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Outlined.Draw, null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text("Sign document", style = MaterialTheme.typography.bodyLarge)
-                }
-
-                // Export JPGs to Pictures
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small)
-                        .clickable {
-                            showMoreSheet = false
-                            scope.launch {
-                                val count = MediaStoreExporter.exportJpgsToPictures(context, doc, uiState.pages, fileStore)
-                                android.widget.Toast.makeText(context, "Exported $count pages to Pictures/Abul's Scanner", android.widget.Toast.LENGTH_LONG).show()
-                            }
-                        }
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Outlined.Image, null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text("Export JPGs to Pictures", style = MaterialTheme.typography.bodyLarge)
-                }
-
-                // Lock / Unlock
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small)
-                        .clickable {
-                            showMoreSheet = false
-                            scope.launch {
-                                val pinHash = settingsRepository.pinHash.first()
-                                if (pinHash.isNullOrBlank()) {
-                                    showNoPinDialog = true
-                                } else {
-                                    viewModel.toggleLock()
-                                }
-                            }
-                        }
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Outlined.Lock, null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(if (doc.locked) "Unlock document" else "Lock document", style = MaterialTheme.typography.bodyLarge)
-                }
-
-                // Recycle bin
+                // 9. Move to recycle bin
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -698,28 +1084,26 @@ fun DocumentScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(vertical = 8.dp)
                 ) {
-                    uiState.pages.forEachIndexed { idx, page ->
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable {
+                    Text("Select which 2-page spread you want to split into separate pages:")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        contentPadding = PaddingValues(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.height(240.dp)
+                    ) {
+                        itemsIndexed(uiState.pages, key = { _, page -> page.id }) { index, page ->
+                            PageTile(
+                                page = page,
+                                pageNumber = index + 1,
+                                onClick = {
                                     showPageSelectForBookSplit = false
-                                    if (doc != null) {
-                                        onNavigateToBookSplit(doc.id, page.id)
-                                    }
-                                },
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("Page ${idx + 1}", fontWeight = FontWeight.SemiBold)
-                            }
+                                    onNavigateToBookSplit(doc.id, page.id)
+                                }
+                            )
                         }
                     }
                 }
@@ -727,21 +1111,20 @@ fun DocumentScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showPageSelectForBookSplit = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.action_cancel))
                 }
             }
         )
     }
 
-    // Tag Selection Bottom Sheet
+    // Tag Assignment Sheet
     if (showTagSheet) {
+        var currentSelection by remember(uiState.tags) { mutableStateOf(uiState.tags.map { it.id }.toSet()) }
+
         ModalBottomSheet(
             onDismissRequest = { showTagSheet = false },
             sheetState = rememberModalBottomSheetState()
         ) {
-            val assignedTagIds = remember(uiState.tags) { uiState.tags.map { it.id }.toSet() }
-            var currentSelection by remember { mutableStateOf(assignedTagIds) }
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -764,12 +1147,9 @@ fun DocumentScreen(
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
+
                 if (allTags.isEmpty()) {
-                    Text(
-                        "No tags yet. Tap 'New Tag' above to create one.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text("No tags created yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     allTags.forEach { tag ->
                         val isChecked = currentSelection.contains(tag.id)
@@ -794,6 +1174,7 @@ fun DocumentScreen(
                         }
                     }
                 }
+
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -918,16 +1299,20 @@ fun DocumentScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PageTile(
     page: PageEntity,
     pageNumber: Int,
+    isSelectMode: Boolean = false,
+    isSelected: Boolean = false,
     isReordering: Boolean = false,
     canMoveUp: Boolean = false,
     canMoveDown: Boolean = false,
     onMoveUp: () -> Unit = {},
     onMoveDown: () -> Unit = {},
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val thumbFile = remember(page) {
@@ -941,7 +1326,10 @@ fun PageTile(
             .aspectRatio(0.72f)
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
     ) {
         if (thumbFile.exists()) {
             AsyncImage(
@@ -952,18 +1340,40 @@ fun PageTile(
             )
         }
 
-        // Page number badge
+        // Selection Checkmark Badge (top-end)
+        if (isSelectMode) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .size(26.dp)
+                    .clip(CircleShape)
+                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Outlined.Check,
+                        contentDescription = "Selected",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+
+        // Page number badge "01", "02" (bottom-start) per FIXES-2 §5
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(6.dp)
-                .size(22.dp)
-                .clip(CircleShape)
-                .background(Color.Black.copy(alpha = 0.65f)),
+                .clip(RoundedCornerShape(4.dp))
+                .background(Color.Black.copy(alpha = 0.65f))
+                .padding(horizontal = 6.dp, vertical = 2.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = pageNumber.toString(),
+                text = String.format("%02d", pageNumber),
                 color = Color.White,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
@@ -1020,8 +1430,9 @@ fun AddPageTile(onClick: () -> Unit) {
             .fillMaxWidth()
             .aspectRatio(0.72f)
             .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-            .clickable(onClick = onClick),
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .clickable(onClick = onClick)
+            .padding(8.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -1030,15 +1441,17 @@ fun AddPageTile(onClick: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Outlined.Add,
-                contentDescription = stringResource(R.string.add_pages),
+                contentDescription = "Add pages",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(36.dp)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = stringResource(R.string.add_pages),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = "Tap 📷➕ to add new pages",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Medium
             )
         }
     }
