@@ -29,6 +29,12 @@ interface TagDao {
     @Query("SELECT * FROM tags ORDER BY name COLLATE NOCASE ASC")
     suspend fun getAll(): List<TagEntity>
 
+    @Query("SELECT * FROM document_tags")
+    suspend fun getAllDocumentTags(): List<DocumentTagCrossRef>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertDocumentTags(crossRefs: List<DocumentTagCrossRef>)
+
     @Query("""
         SELECT t.id, t.name, COUNT(d.id) AS docCount
         FROM tags t

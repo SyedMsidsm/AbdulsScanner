@@ -21,8 +21,14 @@ interface DocumentDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(document: DocumentEntity)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIgnore(document: DocumentEntity): Long
+
     @Update
     suspend fun update(document: DocumentEntity)
+
+    @Query("SELECT * FROM documents")
+    suspend fun getAllDocuments(): List<DocumentEntity>
 
     @Query("SELECT * FROM documents WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): DocumentEntity?

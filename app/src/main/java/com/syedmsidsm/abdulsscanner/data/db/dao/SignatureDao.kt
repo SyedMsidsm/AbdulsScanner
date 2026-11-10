@@ -13,6 +13,12 @@ interface SignatureDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(signature: SignatureEntity)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIgnore(signature: SignatureEntity): Long
+
+    @Query("SELECT * FROM signatures")
+    suspend fun getAll(): List<SignatureEntity>
+
     @Query("SELECT * FROM signatures ORDER BY createdAt DESC LIMIT 5")
     fun observeSignatures(): Flow<List<SignatureEntity>>
 

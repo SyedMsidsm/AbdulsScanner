@@ -13,8 +13,14 @@ interface QrDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entry: QrHistoryEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIgnore(entry: QrHistoryEntity): Long
+
     @Query("SELECT * FROM qr_history ORDER BY scannedAt DESC")
     fun observeAll(): Flow<List<QrHistoryEntity>>
+
+    @Query("SELECT * FROM qr_history")
+    suspend fun getAll(): List<QrHistoryEntity>
 
     @Query("SELECT * FROM qr_history WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): QrHistoryEntity?

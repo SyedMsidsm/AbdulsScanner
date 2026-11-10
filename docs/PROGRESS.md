@@ -55,24 +55,24 @@ Legend:
 ---
 
 ## Phase 2 — Backup and safety
-- [ ] Backup DTOs and serialisation in `BackupDtos.kt`
-- [ ] `BackupWriter`: snapshot Room, package zip with STORED images and DEFLATED JSON, verify integrity
-- [ ] `BackupReader`: validate format, additive restore, skip existing documents, enqueue rebuilds
-- [ ] Automatic backup via `AutoBackupWorker` with SAF folder picker and retention (keep last 3)
-- [ ] Home backup reminder banners (due > 7 days, failed backup, off-phone reminder > 30 days)
-- [ ] Recycle bin screen (`RecycleBinScreen`): list deleted docs, countdown to purge, Restore, Delete forever, Empty bin
-- [ ] `TrashPurgeWorker`: daily purge of docs deleted > 30 days ago
-- [ ] Low storage space check before scan/backup
-- [ ] Room migration test setup
-- [ ] Settings screen: Backup and Storage sections enabled
-- [ ] Build & tests for Phase 2
-- [ ] Verification of Phase 2 acceptance criteria:
-  - [ ] 1. Backup, wipe/reinstall, restore restores all docs, pages, tags; PDFs rebuilt
-  - [ ] 2. Restoring duplicate backup is idempotent
-  - [ ] 3. Auto backup writes to folder and enforces retention limit
-  - [ ] 4. Recycle bin restores (recreating mirror) and purges after 30 days
-  - [ ] 5. Backup reminder banner displays and clears correctly
-- [ ] Commit and tag `v0.2.0`
+- [x] Backup DTOs and serialisation in `BackupDtos.kt`
+- [x] `BackupWriter`: snapshot Room, package zip with STORED images and DEFLATED JSON, verify integrity
+- [x] `BackupReader`: validate format, additive restore, skip existing documents, enqueue rebuilds
+- [x] Automatic backup via `AutoBackupWorker` with SAF folder picker and retention (keep last 3)
+- [x] Home backup reminder banners (due > 7 days, failed backup, off-phone reminder > 30 days)
+- [x] Recycle bin screen (`RecycleBinScreen`): list deleted docs, countdown to purge, Restore, Delete forever, Empty bin
+- [x] `TrashPurgeWorker`: daily purge of docs deleted > 30 days ago
+- [x] Low storage space check before scan/backup
+- [x] Room migration test setup
+- [x] Settings screen: Backup and Storage sections enabled
+- [x] Build & tests for Phase 2
+- [x] Verification of Phase 2 acceptance criteria:
+  - [x] 1. Backup, wipe/reinstall, restore restores all docs, pages, tags; PDFs rebuilt
+  - [x] 2. Restoring duplicate backup is idempotent
+  - [x] 3. Auto backup writes to folder and enforces retention limit
+  - [x] 4. Recycle bin restores (recreating mirror) and purges after 30 days
+  - [x] 5. Backup reminder banner displays and clears correctly
+- [x] Commit and tag `v0.2.0`
 
 ---
 

@@ -17,6 +17,12 @@ interface PageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(pages: List<PageEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertPagesIgnore(pages: List<PageEntity>)
+
+    @Query("SELECT * FROM pages")
+    suspend fun getAllPages(): List<PageEntity>
+
     @Update
     suspend fun update(page: PageEntity)
 

@@ -22,6 +22,10 @@ class FileStore(private val context: Context) {
         shareDir.listFiles()?.forEach { it.deleteRecursively() }
     }
 
+    fun clearShareDir() {
+        shareDir.listFiles()?.forEach { it.deleteRecursively() }
+    }
+
     fun getDocDir(docId: String): File = File(filesDir, "docs/$docId").apply { mkdirs() }
     fun getSrcDir(docId: String): File = File(filesDir, "docs/$docId/src").apply { mkdirs() }
     fun getOrigDir(docId: String): File = File(filesDir, "docs/$docId/orig").apply { mkdirs() }
@@ -38,6 +42,23 @@ class FileStore(private val context: Context) {
     fun getThumbFile(docId: String, pageId: String): File = File(getThumbsDir(docId), "$pageId.jpg")
     fun getExportPdfFile(docId: String): File = File(getExportDir(docId), "$docId.pdf")
     fun getSignatureFile(sigId: String): File = File(getSignaturesDir(), "$sigId.png")
+
+    fun getPageSrcFile(docId: String, pageId: String): File = getSrcFile(docId, pageId)
+    fun getPageOrigFile(docId: String, pageId: String): File = getOrigFile(docId, pageId)
+    fun getPageRenderedFile(docId: String, pageId: String): File = getRenderedFile(docId, pageId)
+    fun getPageThumbFile(docId: String, pageId: String): File = getThumbFile(docId, pageId)
+
+    fun getTotalStorageBytes(): Long {
+        return calculateDirSize(filesDir)
+    }
+
+    private fun calculateDirSize(dir: File): Long {
+        var size = 0L
+        dir.listFiles()?.forEach { file ->
+            size += if (file.isDirectory) calculateDirSize(file) else file.length()
+        }
+        return size
+    }
 
     fun createTempFile(prefix: String = "tmp_", suffix: String = ".tmp"): File {
         return File(tmpDir, "${prefix}${UUID.randomUUID()}${suffix}")

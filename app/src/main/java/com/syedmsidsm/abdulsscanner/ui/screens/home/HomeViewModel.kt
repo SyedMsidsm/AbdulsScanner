@@ -23,6 +23,18 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+enum class BannerType {
+    BACKUP_NEEDED,
+    AUTO_BACKUP_FAILED,
+    OFF_PHONE_REMINDER
+}
+
+data class HomeBanner(
+    val type: BannerType,
+    val message: String,
+    val actionText: String
+)
+
 data class HomeUiState(
     val documents: List<DocumentEntity> = emptyList(),
     val tagsWithCounts: List<TagWithCount> = emptyList(),
@@ -37,8 +49,7 @@ data class HomeUiState(
     val searchSnippets: Map<String, String> = emptyMap(),
     val isSelectMode: Boolean = false,
     val selectedDocIds: Set<String> = emptySet(),
-    val bannerMessage: String? = null,
-    val bannerActionText: String? = null,
+    val banner: HomeBanner? = null,
     val isSavingScan: Boolean = false
 )
 
@@ -46,6 +57,17 @@ private data class FilterConfig(
     val sortOrder: SortOrder,
     val tagId: Long?,
     val isUngrouped: Boolean
+)
+
+private data class BackupBannerConfig(
+    val lastBackupAt: Long?,
+    val autoBackupFailed: Boolean,
+    val lastOffPhoneReminderAt: Long?
+)
+
+private data class TagsInfo(
+    val tags: List<TagWithCount>,
+    val ungroupedCount: Int
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -76,6 +98,21 @@ class HomeViewModel(
         FilterConfig(sort, tagId, ungrouped)
     }
 
+    private val backupConfigFlow = combine(
+        settingsRepository.lastBackupAt,
+        settingsRepository.autoBackupFailed,
+        settingsRepository.lastOffPhoneReminderAt
+    ) { lastBackup, failed, reminder ->
+        BackupBannerConfig(lastBackup, failed, reminder)
+    }
+
+    private val tagsInfoFlow = combine(
+        tagRepository.observeTagsWithCounts(),
+        tagRepository.observeUngroupedCount()
+    ) { tags, ungrouped ->
+        TagsInfo(tags, ungrouped)
+    }
+
     private val documentsFlow = filterConfig.flatMapLatest { config ->
         documentRepository.observeDocuments(config.sortOrder, config.tagId, config.isUngrouped)
     }
@@ -83,17 +120,44 @@ class HomeViewModel(
     val uiState: StateFlow<HomeUiState> = combine(
         documentsFlow,
         settingsRepository.viewMode,
-        tagRepository.observeTagsWithCounts(),
-        tagRepository.observeUngroupedCount(),
-        filterConfig
-    ) { docs, viewModeStr, tags, ungroupedCount, config ->
+        tagsInfoFlow,
+        filterConfig,
+        backupConfigFlow
+    ) { docs, viewModeStr, tagsInfo, config, backupConfig ->
         appReady.value = true
         val viewMode = try { ViewMode.valueOf(viewModeStr) } catch (_: Exception) { ViewMode.LIST }
 
+        val now = System.currentTimeMillis()
+        val sevenDays = 7L * 24 * 60 * 60 * 1000L
+        val thirtyDays = 30L * 24 * 60 * 60 * 1000L
+
+        val banner: HomeBanner? = when {
+            docs.isNotEmpty() && (backupConfig.lastBackupAt == null || (now - backupConfig.lastBackupAt) > sevenDays) -> {
+                val msg = if (backupConfig.lastBackupAt == null) {
+                    "You haven't backed up yet"
+                } else {
+                    val daysAgo = ((now - backupConfig.lastBackupAt) / (24 * 60 * 60 * 1000L)).toInt().coerceAtLeast(1)
+                    "Last backup $daysAgo days ago"
+                }
+                HomeBanner(BannerType.BACKUP_NEEDED, msg, "Back up now")
+            }
+            backupConfig.autoBackupFailed -> {
+                HomeBanner(BannerType.AUTO_BACKUP_FAILED, "Automatic backup failed — choose the folder again", "Fix")
+            }
+            backupConfig.lastBackupAt != null && (backupConfig.lastOffPhoneReminderAt == null || (now - backupConfig.lastOffPhoneReminderAt) > thirtyDays) -> {
+                HomeBanner(
+                    BannerType.OFF_PHONE_REMINDER,
+                    "Copy your newest backup off this phone (USB stick or another device) so a lost phone doesn't mean lost scans.",
+                    "Got it"
+                )
+            }
+            else -> null
+        }
+
         HomeUiState(
             documents = docs,
-            tagsWithCounts = tags,
-            ungroupedCount = ungroupedCount,
+            tagsWithCounts = tagsInfo.tags,
+            ungroupedCount = tagsInfo.ungroupedCount,
             selectedTagId = config.tagId,
             isUngroupedSelected = config.isUngrouped,
             sortOrder = config.sortOrder,
@@ -102,9 +166,16 @@ class HomeViewModel(
             searchQuery = _searchQuery.value,
             isSelectMode = _isSelectMode.value,
             selectedDocIds = _selectedDocIds.value,
+            banner = banner,
             isSavingScan = _isSavingScan.value
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
+
+    fun dismissOffPhoneReminder() {
+        viewModelScope.launch {
+            settingsRepository.setLastOffPhoneReminderAt(System.currentTimeMillis())
+        }
+    }
 
     fun selectTag(tagId: Long?) {
         _isUngroupedSelected.value = false

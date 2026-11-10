@@ -51,6 +51,7 @@ class SettingsRepository(private val context: Context) {
         val VIEW_MODE = stringPreferencesKey("view_mode")
         val AUTO_BACKUP_ENABLED = booleanPreferencesKey("auto_backup_enabled")
         val AUTO_BACKUP_TREE_URI = stringPreferencesKey("auto_backup_tree_uri")
+        val AUTO_BACKUP_FAILED = booleanPreferencesKey("auto_backup_failed")
         val AUTO_BACKUP_INTERVAL_DAYS = intPreferencesKey("auto_backup_interval_days")
         val BACKUP_KEEP_COUNT = intPreferencesKey("backup_keep_count")
         val LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
@@ -76,6 +77,7 @@ class SettingsRepository(private val context: Context) {
     val viewMode: Flow<String> = context.dataStore.data.map { it[Keys.VIEW_MODE] ?: ViewMode.LIST.name }
     val autoBackupEnabled: Flow<Boolean> = context.dataStore.data.map { it[Keys.AUTO_BACKUP_ENABLED] ?: false }
     val autoBackupTreeUri: Flow<String?> = context.dataStore.data.map { it[Keys.AUTO_BACKUP_TREE_URI] }
+    val autoBackupFailed: Flow<Boolean> = context.dataStore.data.map { it[Keys.AUTO_BACKUP_FAILED] ?: false }
     val autoBackupIntervalDays: Flow<Int> = context.dataStore.data.map { it[Keys.AUTO_BACKUP_INTERVAL_DAYS] ?: 7 }
     val backupKeepCount: Flow<Int> = context.dataStore.data.map { it[Keys.BACKUP_KEEP_COUNT] ?: 3 }
     val lastBackupAt: Flow<Long?> = context.dataStore.data.map { it[Keys.LAST_BACKUP_AT] }
@@ -102,6 +104,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setAutoBackupTreeUri(uri: String?) = context.dataStore.edit {
         if (uri != null) it[Keys.AUTO_BACKUP_TREE_URI] = uri else it.remove(Keys.AUTO_BACKUP_TREE_URI)
     }
+    suspend fun setAutoBackupFailed(failed: Boolean) = context.dataStore.edit { it[Keys.AUTO_BACKUP_FAILED] = failed }
     suspend fun setAutoBackupIntervalDays(days: Int) = context.dataStore.edit { it[Keys.AUTO_BACKUP_INTERVAL_DAYS] = days }
     suspend fun setBackupKeepCount(count: Int) = context.dataStore.edit { it[Keys.BACKUP_KEEP_COUNT] = count }
     suspend fun setLastBackupAt(timestamp: Long) = context.dataStore.edit { it[Keys.LAST_BACKUP_AT] = timestamp }

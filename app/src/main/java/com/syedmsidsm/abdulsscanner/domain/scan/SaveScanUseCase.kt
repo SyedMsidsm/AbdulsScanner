@@ -44,6 +44,12 @@ class SaveScanUseCase(
     ): String = withContext(Dispatchers.IO) {
         require(imageUris.isNotEmpty()) { "Cannot save empty scan" }
 
+        // Section 12.7: Low storage check
+        val storageCheck = com.syedmsidsm.abdulsscanner.domain.safety.StorageSafety.checkStorage(context)
+        if (storageCheck is com.syedmsidsm.abdulsscanner.domain.safety.StorageSafety.StorageCheckResult.Blocked) {
+            throw IllegalStateException(storageCheck.message)
+        }
+
         val hdMode = settingsRepository.hdMode.first()
         val defaultFilter = settingsRepository.defaultFilter.first()
         val defaultPageSize = settingsRepository.pageSize.first()

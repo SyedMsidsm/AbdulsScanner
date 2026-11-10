@@ -35,6 +35,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Sort
 import androidx.compose.material.icons.outlined.ViewList
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -85,6 +86,7 @@ fun HomeScreen(
     onNavigateToDocument: (String) -> Unit,
     onNavigateToTools: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToBackup: () -> Unit = {},
     onNavigateToTags: () -> Unit,
     onSharePdf: (DocumentEntity) -> Unit
 ) {
@@ -188,6 +190,55 @@ fun HomeScreen(
                 .padding(padding)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
+                // Banner area (Section 10.1 & 12.5)
+                uiState.banner?.let { banner ->
+                    androidx.compose.material3.Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Outlined.Warning,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = banner.message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            TextButton(
+                                onClick = {
+                                    when (banner.type) {
+                                        BannerType.BACKUP_NEEDED, BannerType.AUTO_BACKUP_FAILED -> {
+                                            onNavigateToBackup()
+                                        }
+                                        BannerType.OFF_PHONE_REMINDER -> {
+                                            viewModel.dismissOffPhoneReminder()
+                                        }
+                                    }
+                                }
+                            ) {
+                                Text(
+                                    text = banner.actionText,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // Filter and sort bar
                 Row(
                     modifier = Modifier

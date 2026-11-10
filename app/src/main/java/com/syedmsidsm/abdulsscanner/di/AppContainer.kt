@@ -44,6 +44,24 @@ class AppContainer(val context: Context) {
         PdfBuilder(fileStore)
     }
 
+    val backupWriter: com.syedmsidsm.abdulsscanner.domain.backup.BackupWriter by lazy {
+        com.syedmsidsm.abdulsscanner.domain.backup.BackupWriter(
+            context = context,
+            database = database,
+            fileStore = fileStore,
+            settingsRepository = settingsRepository
+        )
+    }
+
+    val backupReader: com.syedmsidsm.abdulsscanner.domain.backup.BackupReader by lazy {
+        com.syedmsidsm.abdulsscanner.domain.backup.BackupReader(
+            context = context,
+            database = database,
+            fileStore = fileStore,
+            pdfBuilder = pdfBuilder
+        )
+    }
+
     val saveScanUseCase: SaveScanUseCase by lazy {
         SaveScanUseCase(
             context = context,

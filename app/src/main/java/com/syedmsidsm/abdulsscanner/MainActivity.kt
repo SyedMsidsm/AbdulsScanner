@@ -18,13 +18,19 @@ import androidx.navigation.navArgument
 import com.syedmsidsm.abdulsscanner.data.db.entity.DocumentEntity
 import com.syedmsidsm.abdulsscanner.ui.theme.AppThemeMode
 import com.syedmsidsm.abdulsscanner.ui.nav.Routes
+import com.syedmsidsm.abdulsscanner.ui.screens.backup.BackupScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.backup.BackupViewModel
 import com.syedmsidsm.abdulsscanner.ui.screens.document.DocumentScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.document.DocumentViewModel
 import com.syedmsidsm.abdulsscanner.ui.screens.home.HomeScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.home.HomeViewModel
 import com.syedmsidsm.abdulsscanner.ui.screens.labs.ArabicOcrLabsScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.pageeditor.PageViewerScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.settings.SettingsScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.settings.SettingsViewModel
 import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolsScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.trash.RecycleBinScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.trash.RecycleBinViewModel
 import com.syedmsidsm.abdulsscanner.ui.theme.AbdulsScannerTheme
 import java.io.File
 
@@ -121,7 +127,10 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate(Routes.TOOLS)
                             },
                             onNavigateToSettings = {
-                                navController.navigate(Routes.LABS_ARABIC_OCR) // In Phase 1 Settings navigates to Labs comparison
+                                navController.navigate(Routes.SETTINGS)
+                            },
+                            onNavigateToBackup = {
+                                navController.navigate(Routes.SETTINGS_BACKUP)
                             },
                             onNavigateToTags = {},
                             onSharePdf = { doc -> shareDocumentPdf(doc) }
@@ -197,6 +206,40 @@ class MainActivity : ComponentActivity() {
                             onNavigateToRoute = { route ->
                                 navController.navigate(route)
                             }
+                        )
+                    }
+
+                    composable(Routes.SETTINGS) {
+                        val settingsViewModel: SettingsViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                            factory = SettingsViewModel.provideFactory(container)
+                        )
+                        SettingsScreen(
+                            viewModel = settingsViewModel,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToBackup = { navController.navigate(Routes.SETTINGS_BACKUP) },
+                            onNavigateToTrash = { navController.navigate(Routes.SETTINGS_TRASH) },
+                            onNavigateToLabs = { navController.navigate(Routes.LABS_ARABIC_OCR) }
+                        )
+                    }
+
+                    composable(Routes.SETTINGS_BACKUP) {
+                        val backupViewModel: BackupViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                            factory = BackupViewModel.provideFactory(container)
+                        )
+                        BackupScreen(
+                            viewModel = backupViewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Routes.SETTINGS_TRASH) {
+                        val trashViewModel: RecycleBinViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                            factory = RecycleBinViewModel.provideFactory(container)
+                        )
+                        RecycleBinScreen(
+                            viewModel = trashViewModel,
+                            fileStore = container.fileStore,
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
 

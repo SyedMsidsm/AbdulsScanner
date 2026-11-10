@@ -4,6 +4,23 @@ All notable changes to **Abdul's Scanner** will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-10
+
+### Added
+- Dedicated `@Serializable` DTOs in `BackupDtos.kt` ensuring stable backward-compatible zip backup format independent of Room entities.
+- `BackupWriter`: snapshots database in a single read transaction, packages zip archive with STORED image files and DEFLATED JSON, verifies entry count and CRC32, writes to SAF tree or manual file destination, and enforces retention limit (`backupKeepCount`).
+- `BackupReader`: validates format signature and version, executes additive restore skipping duplicate documents, merges tags by name, restores signatures/QR records, unpacks files to temp before atomic commit, populates FTS4 search, and rebuilds PDFs (`PdfRebuildWorker`).
+- Background workers: `AutoBackupWorker` (periodic with SAF folder and notification on failure) and `TrashPurgeWorker` (daily 30-day purge).
+- Recycle bin screen (`RecycleBinScreen` & `RecycleBinViewModel`) with 30-day countdown timer, individual Restore/Delete forever actions, and Empty bin confirmation.
+- Storage safety (`StorageSafety`): StatFs checks before scan and backup (warning < 200 MB, refusal < 50 MB).
+- Home backup reminder banner (Section 12.5): conditional banner for due backups (> 7 days or never), failed automatic backup, and off-phone reminder (> 30 days).
+- Settings screen (`SettingsScreen` & `SettingsViewModel`) and Backup screen (`BackupScreen` & `BackupViewModel`) with app data usage stats and temporary cache cleaner.
+- Unit tests in `BackupDtoTest` (manifest validation, forward compatibility rejection, full data serialization round-trip) and `StorageSafetyTest`.
+
+### Decisions
+- Zip archive stores uncompressed images (`ZipEntry.STORED`) with precomputed CRC32 and explicit length to minimize CPU overhead on mobile devices.
+- Combined flows in `HomeViewModel` into intermediate data classes to remain within Kotlin coroutine typed `combine` boundaries without resorting to reflection or untyped arrays.
+
 ## [0.1.0] - 2026-11-10
 
 ### Added
