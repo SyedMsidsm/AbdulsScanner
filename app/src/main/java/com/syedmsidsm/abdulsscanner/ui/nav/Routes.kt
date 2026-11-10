@@ -11,7 +11,7 @@ object Routes {
     const val BOOK = "book/{docId}"
     const val COLLAGE = "collage"
     const val QR = "qr"
-    const val QR_RESULT = "qr/result/{id}"
+    const val QR_RESULT = "qr/result/{id}?raw={raw}"
     const val QR_HISTORY = "qr/history"
 
     const val TOOL_MERGE = "tool/merge"
@@ -38,7 +38,10 @@ object Routes {
     fun pageViewer(docId: String, pageId: String) = "page/$docId/$pageId"
     fun ocr(docId: String, pageIds: String = "") = "ocr/$docId?pages=$pageIds"
     fun book(docId: String) = "book/$docId"
-    fun qrResult(id: Long) = "qr/result/$id"
+    fun qrResult(id: Long = 0L, raw: String = ""): String {
+        val encodedRaw = android.net.Uri.encode(raw)
+        return "qr/result/$id?raw=$encodedRaw"
+    }
     fun watermark(docId: String = "") = "tool/watermark?docId=$docId"
     fun signature(docId: String = "", pageId: String = "") = "tool/signature?docId=$docId&pageId=$pageId"
 }

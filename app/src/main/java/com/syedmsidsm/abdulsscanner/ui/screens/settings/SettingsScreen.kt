@@ -29,7 +29,9 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -71,6 +73,8 @@ fun SettingsScreen(
     var showFilterDropdown by remember { mutableStateOf(false) }
     var showPageSizeDropdown by remember { mutableStateOf(false) }
     var showThemeDropdown by remember { mutableStateOf(false) }
+    var showOcrLangDropdown by remember { mutableStateOf(false) }
+    var showReReadConfirmDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -302,6 +306,105 @@ fun SettingsScreen(
                 }
             }
 
+            // Section: Text Reading & Search
+            SettingsSectionHeader(title = "Text Reading")
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Language for search indexing", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "Choose language for background search reading",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Box {
+                            TextButton(onClick = { showOcrLangDropdown = true }) {
+                                val label = when (uiState.ocrSearchLanguage) {
+                                    "EN" -> "English"
+                                    "AR" -> "Arabic"
+                                    else -> "Both"
+                                }
+                                Text("$label ▾")
+                            }
+                            DropdownMenu(
+                                expanded = showOcrLangDropdown,
+                                onDismissRequest = { showOcrLangDropdown = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Both (English + Arabic)") },
+                                    onClick = {
+                                        viewModel.setOcrSearchLanguage("BOTH")
+                                        showOcrLangDropdown = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("English") },
+                                    onClick = {
+                                        viewModel.setOcrSearchLanguage("EN")
+                                        showOcrLangDropdown = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Arabic") },
+                                    onClick = {
+                                        viewModel.setOcrSearchLanguage("AR")
+                                        showOcrLangDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    OutlinedButton(
+                        onClick = { showReReadConfirmDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (uiState.reindexQueued) "Re-reading queued" else "Re-read all pages")
+                    }
+                }
+            }
+
+            // Section: QR Code
+            SettingsSectionHeader(title = "QR Code")
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Save scan history", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Record scanned QR codes in history list",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = uiState.qrSaveHistory,
+                        onCheckedChange = { viewModel.setQrSaveHistory(it) }
+                    )
+                }
+            }
+
             // Section 5: Appearance
             SettingsSectionHeader(title = "Appearance")
             Surface(
@@ -376,6 +479,31 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        if (showReReadConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = { showReReadConfirmDialog = false },
+                title = { Text("Re-read all pages") },
+                text = {
+                    Text("This will re-read ${uiState.pageCount} pages in the background. It will pause while your phone is in use and only run when the battery is not low.")
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.reReadPages()
+                            showReReadConfirmDialog = false
+                        }
+                    ) {
+                        Text("Re-read")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showReReadConfirmDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }

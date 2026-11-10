@@ -578,17 +578,32 @@ fun HomeScreen(
                                 )
                             }
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = stringResource(R.string.home_empty_title),
-                                style = MaterialTheme.typography.titleMedium,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            OutlinedButton(
-                                onClick = { launchScanner() },
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Text(stringResource(R.string.home_empty_scan_button))
+                            if (uiState.isSearchActive && uiState.searchQuery.isNotBlank()) {
+                                Text(
+                                    text = "No matching documents",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "No results found for \"${uiState.searchQuery}\"",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            } else {
+                                Text(
+                                    text = stringResource(R.string.home_empty_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                OutlinedButton(
+                                    onClick = { launchScanner() },
+                                    shape = MaterialTheme.shapes.small
+                                ) {
+                                    Text(stringResource(R.string.home_empty_scan_button))
+                                }
                             }
                         }
                     }
@@ -605,6 +620,7 @@ fun HomeScreen(
                                     isGrid = false,
                                     isSelectMode = uiState.isSelectMode,
                                     isSelected = uiState.selectedDocIds.contains(doc.id),
+                                    snippet = uiState.searchSnippets[doc.id],
                                     onClick = {
                                         if (uiState.isSelectMode) {
                                             viewModel.toggleDocSelection(doc.id)
@@ -645,6 +661,7 @@ fun HomeScreen(
                                     isGrid = true,
                                     isSelectMode = uiState.isSelectMode,
                                     isSelected = uiState.selectedDocIds.contains(doc.id),
+                                    snippet = uiState.searchSnippets[doc.id],
                                     onClick = {
                                         if (uiState.isSelectMode) {
                                             viewModel.toggleDocSelection(doc.id)

@@ -1,11 +1,18 @@
 package com.syedmsidsm.abdulsscanner.ui.screens.tools
 
+import android.app.Activity
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,9 +20,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Badge
@@ -26,6 +36,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Draw
 import androidx.compose.material.icons.outlined.FolderZip
 import androidx.compose.material.icons.outlined.GridOn
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MenuBook
@@ -37,29 +48,48 @@ import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.Web
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.syedmsidsm.abdulsscanner.R
+import com.syedmsidsm.abdulsscanner.data.db.entity.DocumentEntity
+import com.syedmsidsm.abdulsscanner.data.db.entity.QrSource
+import com.syedmsidsm.abdulsscanner.di.AppContainer
+import com.syedmsidsm.abdulsscanner.domain.qr.QrScannerHelper
 import com.syedmsidsm.abdulsscanner.ui.nav.AppBottomBar
 import com.syedmsidsm.abdulsscanner.ui.nav.Routes
 import com.syedmsidsm.abdulsscanner.ui.theme.CardShape
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class ToolItem(
     val titleRes: Int,
@@ -72,16 +102,67 @@ data class ToolItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ToolsScreen(
+    container: AppContainer,
     onNavigateToDocs: () -> Unit,
     onCameraClick: () -> Unit,
     onNavigateToRoute: (String) -> Unit
 ) {
+    val context = LocalContext.current
+    val activity = context as? Activity
+    val scope = rememberCoroutineScope()
+
+    var showQrDialog by remember { mutableStateOf(false) }
+    var showDocPickerForOcr by remember { mutableStateOf(false) }
+    var activeDocs by remember { mutableStateOf<List<DocumentEntity>>(emptyList()) }
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val stream = context.contentResolver.openInputStream(uri)
+                    val bitmap = BitmapFactory.decodeStream(stream)
+                    stream?.close()
+                    if (bitmap != null) {
+                        val codes = QrScannerHelper.scanFromBitmap(bitmap)
+                        if (codes.isNotEmpty()) {
+                            val code = codes.first()
+                            val id = QrScannerHelper.saveScannedCode(
+                                raw = code,
+                                source = QrSource.IMAGE,
+                                qrRepository = container.qrRepository,
+                                settingsRepository = container.settingsRepository
+                            )
+                            withContext(Dispatchers.Main) {
+                                onNavigateToRoute(Routes.qrResult(id, if (id == 0L) code else ""))
+                            }
+                        } else {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, "No QR code found in selected image", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Failed to read image: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
     val scanTools = listOf(
         ToolItem(R.string.tool_id_card, Icons.Outlined.Badge, phaseLabel = "Phase 5", route = Routes.ID_CARD),
         ToolItem(R.string.tool_scan_docs, Icons.Outlined.CameraAlt, action = onCameraClick),
         ToolItem(R.string.tool_book, Icons.Outlined.MenuBook, phaseLabel = "Phase 5"),
-        ToolItem(R.string.tool_qr_code, Icons.Outlined.QrCodeScanner, phaseLabel = "Phase 4", route = Routes.QR),
-        ToolItem(R.string.tool_to_text, Icons.Outlined.TextFields, phaseLabel = "Phase 4")
+        ToolItem(R.string.tool_qr_code, Icons.Outlined.QrCodeScanner, action = { showQrDialog = true }),
+        ToolItem(R.string.tool_to_text, Icons.Outlined.TextFields, action = {
+            scope.launch {
+                activeDocs = container.database.documentDao().getActiveDocuments()
+                showDocPickerForOcr = true
+            }
+        })
     )
 
     val processTools = listOf(
@@ -162,6 +243,185 @@ fun ToolsScreen(
 
             item(span = { GridItemSpan(3) }) {
                 Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+
+        if (showQrDialog) {
+            ModalBottomSheet(
+                onDismissRequest = { showQrDialog = false }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.tool_qr_code),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                showQrDialog = false
+                                if (activity != null) {
+                                    QrScannerHelper.startCameraScan(
+                                        activity = activity,
+                                        onSuccess = { raw ->
+                                            scope.launch {
+                                                val id = QrScannerHelper.saveScannedCode(
+                                                    raw = raw,
+                                                    source = QrSource.CAMERA,
+                                                    qrRepository = container.qrRepository,
+                                                    settingsRepository = container.settingsRepository
+                                                )
+                                                withContext(Dispatchers.Main) {
+                                                    onNavigateToRoute(Routes.qrResult(id, if (id == 0L) raw else ""))
+                                                }
+                                            }
+                                        },
+                                        onFailure = { e ->
+                                            Toast.makeText(context, "Scan failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                }
+                            },
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Outlined.QrCodeScanner, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text("Scan with Camera", fontWeight = FontWeight.SemiBold)
+                                Text("Fast scanner powered by Google Play Services", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                showQrDialog = false
+                                imagePicker.launch("image/*")
+                            },
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Outlined.Image, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text("Scan from Photo", fontWeight = FontWeight.SemiBold)
+                                Text("Detect QR code from an existing photo or image", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                showQrDialog = false
+                                onNavigateToRoute(Routes.QR_HISTORY)
+                            },
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Outlined.History, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text("Scan History", fontWeight = FontWeight.SemiBold)
+                                Text("View past scanned barcodes and QR codes", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+        }
+
+        if (showDocPickerForOcr) {
+            ModalBottomSheet(
+                onDismissRequest = { showDocPickerForOcr = false }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                ) {
+                    Text(
+                        text = "Select Document for Text Reading",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (activeDocs.isEmpty()) {
+                        Text(
+                            text = "No documents found. Scan a document first.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = {
+                                showDocPickerForOcr = false
+                                onCameraClick()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Scan Document")
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(activeDocs) { doc ->
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .clickable {
+                                            showDocPickerForOcr = false
+                                            onNavigateToRoute(Routes.ocr(doc.id))
+                                        },
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Icons.Outlined.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                        Spacer(modifier = Modifier.width(14.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(doc.name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Text("${doc.pageCount} pages", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
         }
     }

@@ -8,6 +8,7 @@ import com.syedmsidsm.abdulsscanner.data.settings.ArabicOcrEngine
 import com.syedmsidsm.abdulsscanner.data.settings.BookDirection
 import com.syedmsidsm.abdulsscanner.data.settings.SettingsRepository
 import com.syedmsidsm.abdulsscanner.di.AppContainer
+import com.syedmsidsm.abdulsscanner.domain.ocr.OcrWorker
 import com.syedmsidsm.abdulsscanner.domain.safety.StorageSafety
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,11 +26,14 @@ data class SettingsUiState(
     val pageSize: String = "AUTO",
     val namePattern: String = "Scan yyyy-MM-dd HH:mm",
     val mirrorEnabled: Boolean = true,
+    val ocrSearchLanguage: String = "BOTH",
+    val qrSaveHistory: Boolean = true,
     val docCount: Int = 0,
     val pageCount: Int = 0,
     val appStorageBytes: Long = 0L,
     val freeDeviceBytes: Long = 0L,
-    val tempCacheCleared: Boolean = false
+    val tempCacheCleared: Boolean = false,
+    val reindexQueued: Boolean = false
 )
 
 class SettingsViewModel(
@@ -65,6 +69,12 @@ class SettingsViewModel(
         }
         viewModelScope.launch {
             settings.mirrorEnabled.collect { _uiState.value = _uiState.value.copy(mirrorEnabled = it) }
+        }
+        viewModelScope.launch {
+            settings.ocrSearchLanguage.collect { _uiState.value = _uiState.value.copy(ocrSearchLanguage = it) }
+        }
+        viewModelScope.launch {
+            settings.qrSaveHistory.collect { _uiState.value = _uiState.value.copy(qrSaveHistory = it) }
         }
     }
 
@@ -114,6 +124,19 @@ class SettingsViewModel(
 
     fun setMirrorEnabled(enabled: Boolean) {
         viewModelScope.launch { settings.setMirrorEnabled(enabled) }
+    }
+
+    fun setOcrSearchLanguage(lang: String) {
+        viewModelScope.launch { settings.setOcrSearchLanguage(lang) }
+    }
+
+    fun setQrSaveHistory(enabled: Boolean) {
+        viewModelScope.launch { settings.setQrSaveHistory(enabled) }
+    }
+
+    fun reReadPages() {
+        OcrWorker.enqueueAll(container.context)
+        _uiState.value = _uiState.value.copy(reindexQueued = true)
     }
 
     companion object {

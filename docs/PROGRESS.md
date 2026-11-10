@@ -103,23 +103,23 @@ Legend:
 ---
 
 ## Phase 4 — Text and QR
-- [ ] To Text screen: single & batch OCR, language picker (English, Arabic, Both), RTL-aware editable view, save to document, copy, share, save as TXT
-- [ ] Background search indexing via `OcrWorker`
-- [ ] `SearchRepository` and FTS4 search with Arabic text normalisation (strip diacritics, unify alef/yah/taa, normalize digits)
-- [ ] Home search bar with inline query and snippet preview
-- [ ] QR code scanning: Google Code Scanner integration (camera)
-- [ ] QR from image using ML Kit BarcodeScanning
-- [ ] `QrParser` for structured types (URL, Wi-Fi, Text, Phone, Email, SMS, Contact, Geo)
-- [ ] QR result screen with tailored actions (open URL, Wi-Fi connect/copy password, phone call, etc.)
-- [ ] QR history screen (history list, swipe delete, clear all)
-- [ ] Settings: Text reading & QR preferences
-- [ ] Build & tests for Phase 4
-- [ ] Verification of Phase 4 acceptance criteria:
-  - [ ] 1. English and Arabic OCR produce readable text with proper RTL display
-  - [ ] 2. Search matches words with Arabic normalization and highlighted snippets
-  - [ ] 3. Batch OCR displays progress and allows cancellation
-  - [ ] 4. QR actions perform correctly per type; history tracks entries
-- [ ] Commit and tag `v0.4.0`
+- [x] To Text screen: single & batch OCR, language picker (English, Arabic, Both), RTL-aware editable view, save to document, copy, share, save as TXT
+- [x] Background search indexing via `OcrWorker`
+- [x] `SearchRepository` and FTS4 search with Arabic text normalisation (strip diacritics, unify alef/yah/taa, normalize digits)
+- [x] Home search bar with inline query and snippet preview
+- [x] QR code scanning: Google Code Scanner integration (camera)
+- [x] QR from image using ML Kit BarcodeScanning
+- [x] `QrParser` for structured types (URL, Wi-Fi, Text, Phone, Email, SMS, Contact, Geo)
+- [x] QR result screen with tailored actions (open URL, Wi-Fi connect/copy password, phone call, etc.)
+- [x] QR history screen (history list, swipe delete, clear all)
+- [x] Settings: Text reading & QR preferences
+- [x] Build & tests for Phase 4
+- [x] Verification of Phase 4 acceptance criteria:
+  - [x] 1. English and Arabic OCR produce readable text with proper RTL display
+  - [x] 2. Search matches words with Arabic normalization and highlighted snippets
+  - [x] 3. Batch OCR displays progress and allows cancellation
+  - [x] 4. QR actions perform correctly per type; history tracks entries
+- [x] Commit and tag `v0.4.0`
 
 ---
 

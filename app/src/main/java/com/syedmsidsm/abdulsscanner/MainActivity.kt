@@ -31,7 +31,12 @@ import com.syedmsidsm.abdulsscanner.ui.screens.document.DocumentViewModel
 import com.syedmsidsm.abdulsscanner.ui.screens.home.HomeScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.home.HomeViewModel
 import com.syedmsidsm.abdulsscanner.ui.screens.labs.ArabicOcrLabsScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.ocr.ToTextScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.ocr.ToTextViewModel
 import com.syedmsidsm.abdulsscanner.ui.screens.pageeditor.PageViewerScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.qr.QrHistoryScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.qr.QrHistoryViewModel
+import com.syedmsidsm.abdulsscanner.ui.screens.qr.QrResultScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.security.LockScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.security.SecuritySettingsScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.settings.SettingsScreen
@@ -330,6 +335,7 @@ class MainActivity : ComponentActivity() {
 
                     composable(Routes.TOOLS) {
                         ToolsScreen(
+                            container = container,
                             onNavigateToDocs = {
                                 navController.navigate(Routes.HOME) {
                                     popUpTo(Routes.HOME) { inclusive = true }
@@ -340,6 +346,64 @@ class MainActivity : ComponentActivity() {
                             },
                             onNavigateToRoute = { route ->
                                 navController.navigate(route)
+                            }
+                        )
+                    }
+
+                    composable(
+                        route = Routes.OCR,
+                        arguments = listOf(
+                            navArgument("docId") { type = NavType.StringType },
+                            navArgument("pages") { type = NavType.StringType; defaultValue = "" }
+                        )
+                    ) { backStackEntry ->
+                        val docId = backStackEntry.arguments?.getString("docId") ?: return@composable
+                        val pagesParam = backStackEntry.arguments?.getString("pages").orEmpty()
+                        val pageIds = if (pagesParam.isNotBlank()) pagesParam.split(",") else emptyList()
+
+                        val toTextViewModel: ToTextViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                            factory = ToTextViewModel.provideFactory(
+                                docId = docId,
+                                pageIds = pageIds,
+                                database = container.database,
+                                fileStore = container.fileStore,
+                                ocrService = container.ocrService,
+                                searchRepository = container.searchRepository,
+                                settingsRepository = container.settingsRepository
+                            )
+                        )
+                        ToTextScreen(
+                            viewModel = toTextViewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(
+                        route = Routes.QR_RESULT,
+                        arguments = listOf(
+                            navArgument("id") { type = NavType.LongType; defaultValue = 0L },
+                            navArgument("raw") { type = NavType.StringType; defaultValue = "" }
+                        )
+                    ) { backStackEntry ->
+                        val id = backStackEntry.arguments?.getLong("id") ?: 0L
+                        val raw = backStackEntry.arguments?.getString("raw").orEmpty()
+                        QrResultScreen(
+                            qrId = id,
+                            rawText = if (raw.isNotEmpty()) android.net.Uri.decode(raw) else null,
+                            qrRepository = container.qrRepository,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Routes.QR_HISTORY) {
+                        val qrHistoryViewModel: QrHistoryViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                            factory = QrHistoryViewModel.provideFactory(container.qrRepository)
+                        )
+                        QrHistoryScreen(
+                            viewModel = qrHistoryViewModel,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToResult = { id ->
+                                navController.navigate(Routes.qrResult(id))
                             }
                         )
                     }

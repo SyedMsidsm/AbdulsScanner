@@ -136,6 +136,15 @@ class MergeDocumentsUseCase(
             }
         }
 
+        // Search index and background OCR
+        val fts = com.syedmsidsm.abdulsscanner.data.db.entity.DocumentSearchFts(
+            docId = newDocId,
+            name = com.syedmsidsm.abdulsscanner.domain.search.SearchNormalizer.normalize(newDoc.name),
+            body = newPages.mapNotNull { it.ocrText }.joinToString("\n")
+        )
+        database.searchDao().insertOrUpdate(fts)
+        com.syedmsidsm.abdulsscanner.domain.ocr.OcrWorker.enqueueForDocument(context, newDocId)
+
         newDocId
     }
 }

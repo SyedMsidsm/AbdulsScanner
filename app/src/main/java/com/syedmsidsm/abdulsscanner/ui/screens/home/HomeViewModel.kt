@@ -54,7 +54,8 @@ data class HomeUiState(
     val isSavingScan: Boolean = false
 )
 
-private data class FilterConfig(
+private data class ViewFilterConfig(
+    val viewMode: ViewMode,
     val sortOrder: SortOrder,
     val tagId: Long?,
     val isUngrouped: Boolean
@@ -69,6 +70,13 @@ private data class BackupBannerConfig(
 private data class TagsInfo(
     val tags: List<TagWithCount>,
     val ungroupedCount: Int
+)
+
+private data class SearchInfo(
+    val isActive: Boolean,
+    val query: String,
+    val results: List<DocumentEntity>,
+    val snippets: Map<String, String>
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -89,15 +97,29 @@ class HomeViewModel(
     private val _selectedDocIds = MutableStateFlow<Set<String>>(emptySet())
     private val _isSavingScan = MutableStateFlow(false)
 
+    private val _searchResults = MutableStateFlow<List<DocumentEntity>>(emptyList())
+    private val _searchSnippets = MutableStateFlow<Map<String, String>>(emptyMap())
+
     val appReady = MutableStateFlow(false)
 
-    private val filterConfig = combine(
+    private val viewFilterConfigFlow = combine(
+        settingsRepository.viewMode,
         settingsRepository.sortOrder,
         _selectedTagId,
         _isUngroupedSelected
-    ) { sortStr, tagId, ungrouped ->
+    ) { viewModeStr, sortStr, tagId, ungrouped ->
+        val viewMode = try { ViewMode.valueOf(viewModeStr) } catch (_: Exception) { ViewMode.LIST }
         val sort = try { SortOrder.valueOf(sortStr) } catch (_: Exception) { SortOrder.UPDATED }
-        FilterConfig(sort, tagId, ungrouped)
+        ViewFilterConfig(viewMode, sort, tagId, ungrouped)
+    }
+
+    private val searchInfoFlow = combine(
+        _isSearchActive,
+        _searchQuery,
+        _searchResults,
+        _searchSnippets
+    ) { active, query, results, snippets ->
+        SearchInfo(active, query, results, snippets)
     }
 
     private val backupConfigFlow = combine(
@@ -115,25 +137,29 @@ class HomeViewModel(
         TagsInfo(tags, ungrouped)
     }
 
-    private val documentsFlow = filterConfig.flatMapLatest { config ->
+    private val documentsFlow = viewFilterConfigFlow.flatMapLatest { config ->
         documentRepository.observeDocuments(config.sortOrder, config.tagId, config.isUngrouped)
     }
 
     val uiState: StateFlow<HomeUiState> = combine(
         documentsFlow,
-        settingsRepository.viewMode,
+        viewFilterConfigFlow,
         tagsInfoFlow,
-        filterConfig,
+        searchInfoFlow,
         backupConfigFlow
-    ) { docs, viewModeStr, tagsInfo, config, backupConfig ->
+    ) { docs, filterConfig, tagsInfo, searchInfo, backupConfig ->
         appReady.value = true
-        val viewMode = try { ViewMode.valueOf(viewModeStr) } catch (_: Exception) { ViewMode.LIST }
+
+        val isSearching = searchInfo.isActive && searchInfo.query.isNotBlank()
+        val finalDocs = if (isSearching) searchInfo.results else docs
+        val finalSnippets = if (isSearching) searchInfo.snippets else emptyMap()
 
         val now = System.currentTimeMillis()
         val sevenDays = 7L * 24 * 60 * 60 * 1000L
         val thirtyDays = 30L * 24 * 60 * 60 * 1000L
 
         val banner: HomeBanner? = when {
+            isSearching -> null
             docs.isNotEmpty() && (backupConfig.lastBackupAt == null || (now - backupConfig.lastBackupAt) > sevenDays) -> {
                 val msg = if (backupConfig.lastBackupAt == null) {
                     "You haven't backed up yet"
@@ -157,15 +183,17 @@ class HomeViewModel(
         }
 
         HomeUiState(
-            documents = docs,
+            documents = finalDocs,
             tagsWithCounts = tagsInfo.tags,
             ungroupedCount = tagsInfo.ungroupedCount,
-            selectedTagId = config.tagId,
-            isUngroupedSelected = config.isUngrouped,
-            sortOrder = config.sortOrder,
-            viewMode = viewMode,
-            isSearchActive = _isSearchActive.value,
-            searchQuery = _searchQuery.value,
+            selectedTagId = filterConfig.tagId,
+            isUngroupedSelected = filterConfig.isUngrouped,
+            sortOrder = filterConfig.sortOrder,
+            viewMode = filterConfig.viewMode,
+            isSearchActive = searchInfo.isActive,
+            searchQuery = searchInfo.query,
+            searchResults = searchInfo.results,
+            searchSnippets = finalSnippets,
             isSelectMode = _isSelectMode.value,
             selectedDocIds = _selectedDocIds.value,
             banner = banner,
@@ -210,11 +238,33 @@ class HomeViewModel(
 
     fun setSearchActive(active: Boolean) {
         _isSearchActive.value = active
-        if (!active) _searchQuery.value = ""
+        if (!active) {
+            _searchQuery.value = ""
+            _searchResults.value = emptyList()
+            _searchSnippets.value = emptyMap()
+        }
     }
 
     fun onSearchQueryChanged(query: String) {
         _searchQuery.value = query
+        if (query.isBlank()) {
+            _searchResults.value = emptyList()
+            _searchSnippets.value = emptyMap()
+            return
+        }
+        viewModelScope.launch {
+            val results = searchRepository.search(query)
+            val docIds = results.map { it.docId }
+            _searchSnippets.value = results.associate { it.docId to it.snippet }
+            val docs = mutableListOf<DocumentEntity>()
+            for (id in docIds) {
+                val d = documentRepository.getDocumentById(id)
+                if (d != null && d.deletedAt == null) {
+                    docs.add(d)
+                }
+            }
+            _searchResults.value = docs
+        }
     }
 
     fun toggleSelectMode() {

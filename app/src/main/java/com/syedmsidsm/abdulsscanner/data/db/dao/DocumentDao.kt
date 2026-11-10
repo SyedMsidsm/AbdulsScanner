@@ -30,6 +30,9 @@ interface DocumentDao {
     @Query("SELECT * FROM documents")
     suspend fun getAllDocuments(): List<DocumentEntity>
 
+    @Query("SELECT * FROM documents WHERE deletedAt IS NULL ORDER BY updatedAt DESC")
+    suspend fun getActiveDocuments(): List<DocumentEntity>
+
     @Query("SELECT * FROM documents WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): DocumentEntity?
 

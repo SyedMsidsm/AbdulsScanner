@@ -4,6 +4,24 @@ All notable changes to **Abdul's Scanner** will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-10
+
+### Added
+- To Text screen (`ToTextScreen`, `ToTextViewModel`): on-device OCR reading for single pages or batches with English, Arabic, and Both language selections, RTL-aware editable view, progress indicator, cancellation, copy to clipboard, system share sheet, save to document, and export as `.txt` file into `Documents/Abdul's Scanner/`.
+- Full-text search on Home screen: SQLite FTS4 table (`DocumentSearchFts`) with Arabic text normalization (stripping tashkeel, unifying alef/yeh/teh marbuta, normalising Arabic-Indic numerals), real-time query matching, and snippet preview with highlighted match terms.
+- Background OCR worker (`OcrWorker`): WorkManager task queued on scan completion to asynchronously index pages for search with battery-not-low constraints.
+- Re-read all pages feature in Settings to rebuild search index for existing documents with user confirmation dialog.
+- QR and barcode scanning: Google Code Scanner camera preview (`GmsBarcodeScanner`, requires zero camera permissions) and ML Kit barcode recognition from image gallery files (`QrScannerHelper`).
+- Structured QR parser (`QrParser`): handles Wi-Fi, URL, Phone numbers, SMS, Email, Geolocation, vCard/MeCard contacts, and plain text.
+- QR result screen (`QrResultScreen`): tailored action buttons for Wi-Fi connection / password copy, web browsing, phone dialer, email composer, SMS messaging, map navigation, and contact saving.
+- QR history (`QrHistoryScreen`, `QrHistoryViewModel`): scrollable history list with timestamps, formatted values, single item deletion, clear all confirmation, and Settings toggle (`qrSaveHistory`).
+- Unit tests in `QrParserTest` verifying all structured QR format parsers without Android stub dependencies.
+
+### Decisions
+- Structured QR parser uses `java.net.URLDecoder` and standard URL parsing to ensure complete unit testability under local JVM test runners.
+- QR scanner is accessible from both the Tools tab and Document actions, offering direct camera scan, image file picker, and history inspection.
+- Wi-Fi connection utilizes Android Q+ `WifiNetworkSuggestion` API when available, falling back gracefully to clipboard copy and Wi-Fi settings intent on earlier versions.
+
 ## [0.3.0] - 2026-11-10
 
 ### Added

@@ -172,6 +172,17 @@ class SaveScanUseCase(
             }
         }
 
+        // 5. Initial name index in FTS
+        val fts = com.syedmsidsm.abdulsscanner.data.db.entity.DocumentSearchFts(
+            docId = docId,
+            name = com.syedmsidsm.abdulsscanner.domain.search.SearchNormalizer.normalize(documentEntity.name),
+            body = ""
+        )
+        database.searchDao().insertOrUpdate(fts)
+
+        // 6. Enqueue background OCR indexing
+        com.syedmsidsm.abdulsscanner.domain.ocr.OcrWorker.enqueueForDocument(context, docId)
+
         docId
     }
 }
