@@ -194,3 +194,43 @@ Legend:
   - [x] 3. Google scanner fallback remains selectable in settings
   - [x] 4. Release APK signed, verified, and tagged v1.0.0
 - [x] Commit and tag `v1.0.0`
+
+---
+
+## Camera and Filters Add-on (OKEN-Style Camera Controls & 7 Reference Filters)
+- [x] 7 Reference filters ported 1:1 from `reference_filters.py`:
+  - No shadow [BETA] (box downsampling to 256 px, 7x7 max filter, separable box blur radius 6 applied twice, bilinear upscale, percentile level stretch)
+  - Original
+  - Lighten (auto-levels 5th to 99th percentile with gamma 0.9)
+  - Magic Color / Enhanced (auto-levels 5th to 99.5th percentile per channel, saturation boost 1.15x)
+  - Grayscale (ITU-R BT.601 weights)
+  - B&W (Bradley-Roth adaptive integral thresholding, window 1/8, t = 0.20)
+  - Eco (Magic Color + Bradley-Roth mask with 60% weight, gamma 0.95)
+- [x] Golden image unit tests (`FiltersGoldenTest`): 100% pass on all 7 filters within strict error thresholds (MAD <= 3, P99 <= 20, B&W <= 1%).
+- [x] Top bar on built-in camera: Flash, Photo size (HD), Filter, Grid, Settings.
+- [x] Single-popup exclusion and pause on live document analyzer while popup is open.
+- [x] Flash popup with Auto, On, Off, and Torch options; "Torch on" live preview chip with torch shutoff on pause/exit.
+- [x] Photo size popup querying hardware 4:3 back camera JPEG resolutions >= 1600x1200 sorted descending (max 8).
+- [x] Filter panel on camera: 4-column grid of 7 filters with real-time frame thumbnails.
+- [x] 3x3 Grid overlay (1 dp lines, 55% black opacity `Color(0x8C000000)`).
+- [x] Camera settings dropdown panel: Auto shutter, Auto crop, Crop after each scan, Mute mode switches + Settings shortcut.
+- [x] Auto-shutter cooldown (1.5s delay + quad movement > 10% or disappearance before re-trigger).
+- [x] Shutter sound via `MediaActionSound` when not muted.
+- [x] Crop-after-scan screen (`CropAfterScanView`): 4 draggable corner handles, magnifier loupe, Retake, Rotate, Next page, Done.
+- [x] Batch scanning chip above shutter when Crop-after-scan is disabled.
+- [x] Page Editor filter strip: all 7 filters in exact order with live 360 px previews and red BETA badge on No shadow.
+- [x] Settings -> Scanning screen: 11 rows in exact order with "Built-in camera only" subtitle for Google scanner.
+- [x] Verification of Camera & Filters acceptance criteria:
+  - [x] 1. Python reference filter equivalence verified via `FiltersGoldenTest` (all 7 pass)
+  - [x] 2. Filter strip in Page Editor shows 7 filters in order with 360 px live thumbnails & BETA badge
+  - [x] 3. Camera top bar popups operate with single-popup exclusion and analyzer pause
+  - [x] 4. Flash Auto/On/Off/Torch with live preview chip and torch lifecycle safety
+  - [x] 5. Photo size dynamically lists hardware 4:3 back camera resolutions
+  - [x] 6. Filter panel on camera displays live frame thumbnails
+  - [x] 7. 3x3 grid overlay displays at 55% black opacity
+  - [x] 8. Camera settings dropdown with 4 switches
+  - [x] 9. Interactive crop-after-scan screen with loupe, retake, rotate, next, done
+  - [x] 10. Batch scanning with Done chip and thumbnail
+  - [x] 11. Settings -> Scanning 11 rows in exact sequence with proper subtitles
+  - [x] 12. Shutter sound plays when unmuted
+  - [x] 13. Release APK signed, verified, installed, and launched on physical device

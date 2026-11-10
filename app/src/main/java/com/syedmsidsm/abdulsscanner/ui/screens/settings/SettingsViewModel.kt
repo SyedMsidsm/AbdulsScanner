@@ -29,6 +29,14 @@ data class SettingsUiState(
     val ocrSearchLanguage: String = "BOTH",
     val qrSaveHistory: Boolean = true,
     val cameraEngine: String = "BUILT_IN",
+    val cameraFlash: String = "AUTO",
+    val cameraPhotoSize: String? = null,
+    val cameraGrid: Boolean = false,
+    val autoShutter: Boolean = true,
+    val autoCrop: Boolean = true,
+    val cropAfterEachScan: Boolean = true,
+    val muteShutter: Boolean = false,
+    val bookDirection: String = "LTR",
     val docCount: Int = 0,
     val pageCount: Int = 0,
     val appStorageBytes: Long = 0L,
@@ -79,6 +87,30 @@ class SettingsViewModel(
         }
         viewModelScope.launch {
             settings.cameraEngine.collect { _uiState.value = _uiState.value.copy(cameraEngine = it) }
+        }
+        viewModelScope.launch {
+            settings.cameraFlash.collect { _uiState.value = _uiState.value.copy(cameraFlash = it) }
+        }
+        viewModelScope.launch {
+            settings.cameraPhotoSize.collect { _uiState.value = _uiState.value.copy(cameraPhotoSize = it) }
+        }
+        viewModelScope.launch {
+            settings.cameraGrid.collect { _uiState.value = _uiState.value.copy(cameraGrid = it) }
+        }
+        viewModelScope.launch {
+            settings.autoShutter.collect { _uiState.value = _uiState.value.copy(autoShutter = it) }
+        }
+        viewModelScope.launch {
+            settings.autoCrop.collect { _uiState.value = _uiState.value.copy(autoCrop = it) }
+        }
+        viewModelScope.launch {
+            settings.cropAfterEachScan.collect { _uiState.value = _uiState.value.copy(cropAfterEachScan = it) }
+        }
+        viewModelScope.launch {
+            settings.muteShutter.collect { _uiState.value = _uiState.value.copy(muteShutter = it) }
+        }
+        viewModelScope.launch {
+            settings.bookDirection.collect { _uiState.value = _uiState.value.copy(bookDirection = it) }
         }
     }
 
@@ -140,6 +172,38 @@ class SettingsViewModel(
 
     fun setCameraEngine(engine: String) {
         viewModelScope.launch { settings.setCameraEngine(engine) }
+    }
+
+    fun setCameraFlash(flash: String) {
+        viewModelScope.launch { settings.setCameraFlash(flash) }
+    }
+
+    fun setCameraPhotoSize(size: String?) {
+        viewModelScope.launch { settings.setCameraPhotoSize(size) }
+    }
+
+    fun setCameraGrid(enabled: Boolean) {
+        viewModelScope.launch { settings.setCameraGrid(enabled) }
+    }
+
+    fun setAutoShutter(enabled: Boolean) {
+        viewModelScope.launch { settings.setAutoShutter(enabled) }
+    }
+
+    fun setAutoCrop(enabled: Boolean) {
+        viewModelScope.launch { settings.setAutoCrop(enabled) }
+    }
+
+    fun setCropAfterEachScan(enabled: Boolean) {
+        viewModelScope.launch { settings.setCropAfterEachScan(enabled) }
+    }
+
+    fun setMuteShutter(enabled: Boolean) {
+        viewModelScope.launch { settings.setMuteShutter(enabled) }
+    }
+
+    fun setBookDirection(direction: String) {
+        viewModelScope.launch { settings.setBookDirection(direction) }
     }
 
     fun reReadPages() {

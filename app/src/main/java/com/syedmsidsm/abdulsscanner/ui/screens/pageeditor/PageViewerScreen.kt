@@ -40,6 +40,9 @@ import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.RotateRight
 import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import com.syedmsidsm.abdulsscanner.domain.imaging.Filters
 import com.syedmsidsm.abdulsscanner.domain.imaging.OverlayCompositor
 import com.syedmsidsm.abdulsscanner.domain.imaging.PageOverlay
 import androidx.compose.material3.AlertDialog
@@ -220,6 +223,35 @@ fun PageViewerScreen(
             }
         )
         return
+    }
+
+    // Generate live thumbnail previews for the 7 filters
+    var filterThumbnails by remember { mutableStateOf<Map<PageFilter, Bitmap>>(emptyMap()) }
+    LaunchedEffect(currentPage?.thumbPath) {
+        val path = currentPage?.thumbPath ?: return@LaunchedEffect
+        withContext(Dispatchers.IO) {
+            val thumbFile = File(path)
+            val actualFile = if (thumbFile.isAbsolute) thumbFile else File(context.filesDir, path)
+            if (actualFile.exists()) {
+                try {
+                    val baseBmp = BitmapIo.decodeUpright(actualFile, maxLongSide = 180)
+                    val w = baseBmp.width
+                    val h = baseBmp.height
+                    val pixels = IntArray(w * h)
+                    baseBmp.getPixels(pixels, 0, w, 0, 0, w, h)
+                    val map = mutableMapOf<PageFilter, Bitmap>()
+                    for (f in PageFilter.entries) {
+                        val filtered = Filters.applyFilter(pixels, w, h, f)
+                        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                        bmp.setPixels(filtered, 0, w, 0, 0, w, h)
+                        map[f] = bmp
+                    }
+                    withContext(Dispatchers.Main) {
+                        filterThumbnails = map
+                    }
+                } catch (_: Exception) {}
+            }
+        }
     }
 
     Scaffold(
@@ -412,7 +444,7 @@ fun PageViewerScreen(
                 }
             }
 
-            // Filter Strip (Section 10.3: Original, Enhanced, Grayscale, B&W)
+            // Filter Strip: 7 filters with live thumbnails & BETA badge
             if (currentPage != null) {
                 Surface(
                     color = Color.Black.copy(alpha = 0.85f),
@@ -423,29 +455,28 @@ fun PageViewerScreen(
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
                             .padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         val filters = listOf(
+                            PageFilter.NO_SHADOW to "No shadow",
                             PageFilter.ORIGINAL to "Original",
-                            PageFilter.ENHANCED to "Enhanced",
-                            PageFilter.GRAYSCALE to "Gray",
-                            PageFilter.BW to "B&W"
+                            PageFilter.LIGHTEN to "Lighten",
+                            PageFilter.ENHANCED to "Magic Color",
+                            PageFilter.GRAYSCALE to "Grayscale",
+                            PageFilter.BW to "B&W",
+                            PageFilter.ECO to "Eco"
                         )
 
                         val activeFilter = currentPage.filter
 
                         filters.forEach { (filterType, label) ->
                             val isSelected = activeFilter.equals(filterType.name, ignoreCase = true)
-                            Box(
+                            val thumbBitmap = filterThumbnails[filterType]
+
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                                    .border(
-                                        width = if (isSelected) 2.dp else 1.dp,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
                                     .clickable {
                                         if (!isSelected) {
                                             applyPageChange(
@@ -454,14 +485,52 @@ fun PageViewerScreen(
                                             )
                                         }
                                     }
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                contentAlignment = Alignment.Center
                             ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(width = 54.dp, height = 72.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(Color(0xFF2A2A2A))
+                                        .border(
+                                            width = if (isSelected) 2.dp else 1.dp,
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.2f),
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
+                                ) {
+                                    if (thumbBitmap != null) {
+                                        androidx.compose.foundation.Image(
+                                            bitmap = thumbBitmap.asImageBitmap(),
+                                            contentDescription = label,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                        )
+                                    }
+                                    if (filterType == PageFilter.NO_SHADOW) {
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .background(
+                                                    Color(0xFFE53935),
+                                                    RoundedCornerShape(bottomStart = 4.dp)
+                                                )
+                                                .padding(horizontal = 3.dp, vertical = 1.dp)
+                                        ) {
+                                            Text(
+                                                text = "BETA",
+                                                color = Color.White,
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = label,
-                                    style = MaterialTheme.typography.labelMedium,
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    maxLines = 1
                                 )
                             }
                         }

@@ -80,12 +80,7 @@ class PageRenderer(private val fileStore: FileStore) {
         val pixels = IntArray(width * height)
         currentBitmap.getPixels(pixels, 0, width, 0, 0, width, height)
 
-        var filteredPixels = when (filterEnum) {
-            PageFilter.ORIGINAL -> pixels
-            PageFilter.ENHANCED -> Filters.applyEnhanced(pixels, width, height)
-            PageFilter.GRAYSCALE -> Filters.applyGrayscale(pixels, width, height)
-            PageFilter.BW -> Filters.applyBw(pixels, width, height)
-        }
+        var filteredPixels = Filters.applyFilter(pixels, width, height, filterEnum)
 
         if (page.brightness != 0 || page.contrast != 0) {
             filteredPixels = Filters.adjustBrightnessContrast(

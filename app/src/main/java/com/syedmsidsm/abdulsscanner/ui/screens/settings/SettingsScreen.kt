@@ -73,6 +73,8 @@ fun SettingsScreen(
     var showFilterDropdown by remember { mutableStateOf(false) }
     var showPageSizeDropdown by remember { mutableStateOf(false) }
     var showScannerDropdown by remember { mutableStateOf(false) }
+    var showFlashDropdown by remember { mutableStateOf(false) }
+    var showBookDirDropdown by remember { mutableStateOf(false) }
     var showThemeDropdown by remember { mutableStateOf(false) }
     var showOcrLangDropdown by remember { mutableStateOf(false) }
     var showReReadConfirmDialog by remember { mutableStateOf(false) }
@@ -190,32 +192,100 @@ fun SettingsScreen(
 
             // Section 3: Scanning
             SettingsSectionHeader(title = "Scanning")
+            val isBuiltIn = uiState.cameraEngine == "BUILT_IN"
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    // Default filter
+                    // 1. Scanner engine
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Default filter", style = MaterialTheme.typography.bodyLarge)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Scanner", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                if (isBuiltIn) "Built-in camera (CameraX + OpenCV)" else "Google scanner (ML Kit)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Box {
+                            TextButton(onClick = { showScannerDropdown = true }) {
+                                Text(if (isBuiltIn) "Built-in ▾" else "Google ▾")
+                            }
+                            DropdownMenu(
+                                expanded = showScannerDropdown,
+                                onDismissRequest = { showScannerDropdown = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Built-in camera") },
+                                    onClick = {
+                                        viewModel.setCameraEngine("BUILT_IN")
+                                        showScannerDropdown = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Google scanner") },
+                                    onClick = {
+                                        viewModel.setCameraEngine("GOOGLE_SCANNER")
+                                        showScannerDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // 2. Default filter
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val filterLabel = when (uiState.defaultFilter) {
+                            "NO_SHADOW" -> "No shadow (BETA)"
+                            "ORIGINAL" -> "Original"
+                            "LIGHTEN" -> "Lighten"
+                            "ENHANCED" -> "Magic Color"
+                            "GRAYSCALE" -> "Grayscale"
+                            "BW" -> "B&W"
+                            "ECO" -> "Eco"
+                            else -> uiState.defaultFilter
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Default filter", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "Applied to new scans by default",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         Box {
                             TextButton(onClick = { showFilterDropdown = true }) {
-                                Text("${uiState.defaultFilter} ▾")
+                                Text("$filterLabel ▾")
                             }
                             DropdownMenu(
                                 expanded = showFilterDropdown,
                                 onDismissRequest = { showFilterDropdown = false }
                             ) {
-                                listOf("ORIGINAL", "ENHANCED", "GRAYSCALE", "BW").forEach { f ->
+                                listOf(
+                                    "NO_SHADOW" to "No shadow (BETA)",
+                                    "ORIGINAL" to "Original",
+                                    "LIGHTEN" to "Lighten",
+                                    "ENHANCED" to "Magic Color",
+                                    "GRAYSCALE" to "Grayscale",
+                                    "BW" to "B&W",
+                                    "ECO" to "Eco"
+                                ).forEach { (key, label) ->
                                     DropdownMenuItem(
-                                        text = { Text(f) },
+                                        text = { Text(label) },
                                         onClick = {
-                                            viewModel.setDefaultFilter(f)
+                                            viewModel.setDefaultFilter(key)
                                             showFilterDropdown = false
                                         }
                                     )
@@ -226,6 +296,262 @@ fun SettingsScreen(
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
+                    // 3. Photo size
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Photo size", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                if (!isBuiltIn) "Built-in camera only" else (uiState.cameraPhotoSize ?: "Largest (4:3)"),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // 4. Flash
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val flashLabel = when (uiState.cameraFlash) {
+                            "AUTO" -> "Flash Auto"
+                            "ON" -> "Flash On"
+                            "OFF" -> "Flash Off"
+                            "TORCH" -> "Torch"
+                            else -> uiState.cameraFlash
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Flash", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                if (!isBuiltIn) "Built-in camera only" else flashLabel,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (isBuiltIn) {
+                            Box {
+                                TextButton(onClick = { showFlashDropdown = true }) {
+                                    Text("$flashLabel ▾")
+                                }
+                                DropdownMenu(
+                                    expanded = showFlashDropdown,
+                                    onDismissRequest = { showFlashDropdown = false }
+                                ) {
+                                    listOf(
+                                        "AUTO" to "Flash Auto",
+                                        "ON" to "Flash On",
+                                        "OFF" to "Flash Off",
+                                        "TORCH" to "Torch"
+                                    ).forEach { (mode, label) ->
+                                        DropdownMenuItem(
+                                            text = { Text(label) },
+                                            onClick = {
+                                                viewModel.setCameraFlash(mode)
+                                                showFlashDropdown = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // 5. Grid lines
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Grid lines", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                if (!isBuiltIn) "Built-in camera only" else "3x3 alignment grid over preview",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = uiState.cameraGrid,
+                            enabled = isBuiltIn,
+                            onCheckedChange = { viewModel.setCameraGrid(it) }
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // 6. Auto shutter
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Auto shutter", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                if (!isBuiltIn) "Built-in camera only" else "Capture automatically when page is steady",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = uiState.autoShutter,
+                            enabled = isBuiltIn,
+                            onCheckedChange = { viewModel.setAutoShutter(it) }
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // 7. Auto crop images
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Auto crop images", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                if (!isBuiltIn) "Built-in camera only" else "Crop to detected page outline",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = uiState.autoCrop,
+                            enabled = isBuiltIn,
+                            onCheckedChange = { viewModel.setAutoCrop(it) }
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // 8. Crop images after each scan
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Crop images after each scan", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                if (!isBuiltIn) "Built-in camera only" else "Open crop editor immediately after each capture",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = uiState.cropAfterEachScan,
+                            enabled = isBuiltIn,
+                            onCheckedChange = { viewModel.setCropAfterEachScan(it) }
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // 9. Mute mode
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Mute mode", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                if (!isBuiltIn) "Built-in camera only" else "Mute shutter sound on capture",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = uiState.muteShutter,
+                            enabled = isBuiltIn,
+                            onCheckedChange = { viewModel.setMuteShutter(it) }
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // 10. Book page order
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Book page order", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                if (uiState.bookDirection == "LTR") "Left-to-Right (English/Latin)" else "Right-to-Left (Arabic/Hebrew)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Box {
+                            TextButton(onClick = { showBookDirDropdown = true }) {
+                                Text(if (uiState.bookDirection == "LTR") "LTR ▾" else "RTL ▾")
+                            }
+                            DropdownMenu(
+                                expanded = showBookDirDropdown,
+                                onDismissRequest = { showBookDirDropdown = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Left-to-Right (LTR)") },
+                                    onClick = {
+                                        viewModel.setBookDirection("LTR")
+                                        showBookDirDropdown = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Right-to-Left (RTL)") },
+                                    onClick = {
+                                        viewModel.setBookDirection("RTL")
+                                        showBookDirDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // 11. HD scans (Google scanner and imports)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("HD scans", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "Google scanner and imports",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = uiState.hdMode,
+                            onCheckedChange = { viewModel.setHdMode(it) }
+                        )
+                    }
+                }
+            }
+
+            // Section 4: PDF & Mirroring
+            SettingsSectionHeader(title = "PDF & Mirroring")
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     // Page size
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -256,78 +582,6 @@ fun SettingsScreen(
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                    // HD Mode toggle
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("HD Mode", style = MaterialTheme.typography.bodyLarge)
-                            Text(
-                                "Captures higher resolution scans (larger file sizes)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = uiState.hdMode,
-                            onCheckedChange = { viewModel.setHdMode(it) }
-                        )
-                    }
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                    // Scanner engine
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Scanner engine", style = MaterialTheme.typography.bodyLarge)
-                            Text(
-                                if (uiState.cameraEngine == "BUILT_IN") "Built-in camera (CameraX + OpenCV)" else "Google scanner (ML Kit)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Box {
-                            TextButton(onClick = { showScannerDropdown = true }) {
-                                Text(if (uiState.cameraEngine == "BUILT_IN") "Built-in ▾" else "Google ▾")
-                            }
-                            DropdownMenu(
-                                expanded = showScannerDropdown,
-                                onDismissRequest = { showScannerDropdown = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Built-in camera") },
-                                    onClick = {
-                                        viewModel.setCameraEngine("BUILT_IN")
-                                        showScannerDropdown = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Google scanner") },
-                                    onClick = {
-                                        viewModel.setCameraEngine("GOOGLE_SCANNER")
-                                        showScannerDropdown = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Section 4: PDF & Mirroring
-            SettingsSectionHeader(title = "PDF & Mirroring")
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,

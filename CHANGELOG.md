@@ -5,6 +5,29 @@ All notable changes to **Abdul's Scanner** will be documented in this file.
 ## [1.0.0] - 2026-11-10
 
 ### Added
+- Camera and Filters Add-on (OKEN-style camera controls, filter panel, and 7 reference filters):
+  - 1:1 Kotlin port of reference Python filter algorithms (`reference_filters.py`):
+    - **No shadow [BETA]**: Area downsampling to 256 px max side, separable 7x7 max filter, separable box blur (radius 6, applied twice), bilinear upscale, percentile level normalization (p1 to p99), and illumination compensation.
+    - **Original**: Untouched captured image.
+    - **Lighten**: Auto-levels stretching from 5th to 99th percentile with gamma 0.9.
+    - **Magic Color (Enhanced)**: Per-channel percentile stretch (5th to 99.5th) with 1.15x color saturation boost.
+    - **Grayscale**: ITU-R BT.601 luminance weights.
+    - **B&W**: Bradley-Roth adaptive integral thresholding (window size = 1/8 image width, t = 0.20).
+    - **Eco**: Magic Color base combined with Bradley-Roth binary mask at 60% opacity and gamma 0.95.
+  - Golden image unit tests (`FiltersGoldenTest`): validates all 7 filters against reference Python output on `test-photo.jpg`, passing well within required thresholds (MAD <= 3 on RGB, P99 <= 20, B&W <= 1%).
+  - Built-in camera top bar with 5 controls: Flash, Photo size, Filter, Grid, and Settings shortcut.
+  - Camera popups feature single-popup exclusion and pause live document edge detection while any popup is open.
+  - Flash menu: Auto, On, Off, and Torch options; live "Torch on" preview chip; and automatic torch shutdown on app pause/exit.
+  - Photo size menu: dynamic resolution enumeration querying back camera 4:3 JPEG capture sizes >= 1600x1200 sorted descending (max 8 options) and mapped to `ResolutionSelector`.
+  - Real-time filter panel on camera: 4-column grid of all 7 filters showing live frame preview thumbnails.
+  - 3x3 rule-of-thirds grid overlay with 55% black opacity (`Color(0x8C000000)`).
+  - Camera settings dropdown panel: Auto shutter, Auto crop images, Crop images after each scan, and Mute mode switches.
+  - Auto-shutter cooldown logic (1.5s delay + quad displacement > 10% or disappearance before re-triggering).
+  - Shutter sound using Android `MediaActionSound` when Mute mode is disabled.
+  - Interactive crop-after-scan screen (`CropAfterScanView`): 4 draggable corner handles, magnifier loupe, Retake, Rotate (+90°), Next page, and Done actions.
+  - Batch scanning mode: when "Crop images after each scan" is off, captures accumulate with a bottom-right "Done" chip displaying the last captured thumbnail and page count.
+  - Page Editor filter strip: all 7 filters displayed in exact order with live 360 px thumbnail previews and a red "BETA" badge on "No shadow".
+  - Settings -> Scanning screen: reordered to 11 rows in exact sequence per specification, including "Built-in camera only" subtitle for Google scanner mode.
 - Own camera implementation (`CameraScreen`) using AndroidX CameraX and OpenCV (4.10.0) with real-time edge detection and live viewfinder overlays.
 - OKEN-style bottom mode slider: Book, To Text, Docs, ID Card, QR Code with smooth switching and primary green selection.
 - Viewfinder top bar controls: Flash mode cycle (Auto, On, Off), HD mode toggle (high-resolution captures), 3x3 rule-of-thirds grid overlay toggle, and quick shortcut to Settings.

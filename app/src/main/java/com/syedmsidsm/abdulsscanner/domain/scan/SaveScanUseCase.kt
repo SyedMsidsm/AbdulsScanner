@@ -32,7 +32,8 @@ import java.util.UUID
 
 data class CameraCaptureItem(
     val rawImageFile: File,
-    val cropQuad: Quad? = null
+    val cropQuad: Quad? = null,
+    val rotation: Int = 0
 )
 
 class SaveScanUseCase(
@@ -504,6 +505,7 @@ class SaveScanUseCase(
                 widthPx = 0,
                 heightPx = 0,
                 cropQuad = quadJson,
+                rotation = item.rotation,
                 filter = defaultFilter
             )
             newPages.add(pageEntity)

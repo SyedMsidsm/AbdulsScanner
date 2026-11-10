@@ -61,6 +61,13 @@ class SettingsRepository(private val context: Context) {
         val BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
         val QR_SAVE_HISTORY = booleanPreferencesKey("qr_save_history")
         val CAMERA_ENGINE = stringPreferencesKey("camera_engine")
+        val CAMERA_FLASH = stringPreferencesKey("camera_flash")
+        val CAMERA_PHOTO_SIZE = stringPreferencesKey("camera_photo_size")
+        val CAMERA_GRID = booleanPreferencesKey("camera_grid")
+        val AUTO_SHUTTER = booleanPreferencesKey("auto_shutter")
+        val AUTO_CROP = booleanPreferencesKey("auto_crop")
+        val CROP_AFTER_EACH_SCAN = booleanPreferencesKey("crop_after_each_scan")
+        val MUTE_SHUTTER = booleanPreferencesKey("mute_shutter")
     }
 
     val theme: Flow<String> = context.dataStore.data.map { it[Keys.THEME] ?: "DARK" }
@@ -86,7 +93,14 @@ class SettingsRepository(private val context: Context) {
     val pinSalt: Flow<String?> = context.dataStore.data.map { it[Keys.PIN_SALT] }
     val biometricEnabled: Flow<Boolean> = context.dataStore.data.map { it[Keys.BIOMETRIC_ENABLED] ?: false }
     val qrSaveHistory: Flow<Boolean> = context.dataStore.data.map { it[Keys.QR_SAVE_HISTORY] ?: true }
-    val cameraEngine: Flow<String> = context.dataStore.data.map { it[Keys.CAMERA_ENGINE] ?: CameraEngine.GOOGLE_SCANNER.name }
+    val cameraEngine: Flow<String> = context.dataStore.data.map { it[Keys.CAMERA_ENGINE] ?: CameraEngine.BUILT_IN.name }
+    val cameraFlash: Flow<String> = context.dataStore.data.map { it[Keys.CAMERA_FLASH] ?: "AUTO" }
+    val cameraPhotoSize: Flow<String?> = context.dataStore.data.map { it[Keys.CAMERA_PHOTO_SIZE] }
+    val cameraGrid: Flow<Boolean> = context.dataStore.data.map { it[Keys.CAMERA_GRID] ?: false }
+    val autoShutter: Flow<Boolean> = context.dataStore.data.map { it[Keys.AUTO_SHUTTER] ?: true }
+    val autoCrop: Flow<Boolean> = context.dataStore.data.map { it[Keys.AUTO_CROP] ?: true }
+    val cropAfterEachScan: Flow<Boolean> = context.dataStore.data.map { it[Keys.CROP_AFTER_EACH_SCAN] ?: true }
+    val muteShutter: Flow<Boolean> = context.dataStore.data.map { it[Keys.MUTE_SHUTTER] ?: false }
 
     suspend fun setTheme(theme: String) = context.dataStore.edit { it[Keys.THEME] = theme }
     suspend fun setDefaultFilter(filter: String) = context.dataStore.edit { it[Keys.DEFAULT_FILTER] = filter }
@@ -121,4 +135,13 @@ class SettingsRepository(private val context: Context) {
     suspend fun setBiometricEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.BIOMETRIC_ENABLED] = enabled }
     suspend fun setQrSaveHistory(enabled: Boolean) = context.dataStore.edit { it[Keys.QR_SAVE_HISTORY] = enabled }
     suspend fun setCameraEngine(engine: String) = context.dataStore.edit { it[Keys.CAMERA_ENGINE] = engine }
+    suspend fun setCameraFlash(flash: String) = context.dataStore.edit { it[Keys.CAMERA_FLASH] = flash }
+    suspend fun setCameraPhotoSize(size: String?) = context.dataStore.edit {
+        if (size != null) it[Keys.CAMERA_PHOTO_SIZE] = size else it.remove(Keys.CAMERA_PHOTO_SIZE)
+    }
+    suspend fun setCameraGrid(enabled: Boolean) = context.dataStore.edit { it[Keys.CAMERA_GRID] = enabled }
+    suspend fun setAutoShutter(enabled: Boolean) = context.dataStore.edit { it[Keys.AUTO_SHUTTER] = enabled }
+    suspend fun setAutoCrop(enabled: Boolean) = context.dataStore.edit { it[Keys.AUTO_CROP] = enabled }
+    suspend fun setCropAfterEachScan(enabled: Boolean) = context.dataStore.edit { it[Keys.CROP_AFTER_EACH_SCAN] = enabled }
+    suspend fun setMuteShutter(enabled: Boolean) = context.dataStore.edit { it[Keys.MUTE_SHUTTER] = enabled }
 }

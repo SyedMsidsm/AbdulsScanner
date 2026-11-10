@@ -5,8 +5,25 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-enum class PageFilter {
-    ORIGINAL, ENHANCED, GRAYSCALE, BW
+enum class PageFilter(val label: String, val isBeta: Boolean = false) {
+    NO_SHADOW("No shadow", isBeta = true),
+    ORIGINAL("Original"),
+    LIGHTEN("Lighten"),
+    ENHANCED("Magic Color"),
+    GRAYSCALE("Grayscale"),
+    BW("B&W"),
+    ECO("Eco");
+
+    companion object {
+        fun fromString(value: String?): PageFilter {
+            if (value.isNullOrBlank()) return ORIGINAL
+            return try {
+                valueOf(value.uppercase())
+            } catch (e: Exception) {
+                ORIGINAL
+            }
+        }
+    }
 }
 
 enum class OcrStatus {
