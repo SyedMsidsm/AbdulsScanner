@@ -72,6 +72,7 @@ fun SettingsScreen(
 
     var showFilterDropdown by remember { mutableStateOf(false) }
     var showPageSizeDropdown by remember { mutableStateOf(false) }
+    var showScannerDropdown by remember { mutableStateOf(false) }
     var showThemeDropdown by remember { mutableStateOf(false) }
     var showOcrLangDropdown by remember { mutableStateOf(false) }
     var showReReadConfirmDialog by remember { mutableStateOf(false) }
@@ -274,6 +275,48 @@ fun SettingsScreen(
                             onCheckedChange = { viewModel.setHdMode(it) }
                         )
                     }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // Scanner engine
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Scanner engine", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                if (uiState.cameraEngine == "BUILT_IN") "Built-in camera (CameraX + OpenCV)" else "Google scanner (ML Kit)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Box {
+                            TextButton(onClick = { showScannerDropdown = true }) {
+                                Text(if (uiState.cameraEngine == "BUILT_IN") "Built-in ▾" else "Google ▾")
+                            }
+                            DropdownMenu(
+                                expanded = showScannerDropdown,
+                                onDismissRequest = { showScannerDropdown = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Built-in camera") },
+                                    onClick = {
+                                        viewModel.setCameraEngine("BUILT_IN")
+                                        showScannerDropdown = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Google scanner") },
+                                    onClick = {
+                                        viewModel.setCameraEngine("GOOGLE_SCANNER")
+                                        showScannerDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -471,7 +514,7 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Version 0.2.0 · Offline, ad-free personal document scanner",
+                        text = "Version 1.0.0 · Offline, ad-free personal document scanner",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

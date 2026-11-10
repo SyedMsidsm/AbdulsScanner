@@ -15,6 +15,7 @@ import com.syedmsidsm.abdulsscanner.data.settings.ViewMode
 import com.syedmsidsm.abdulsscanner.domain.scan.MergeDocumentsUseCase
 import com.syedmsidsm.abdulsscanner.domain.scan.SaveScanUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -101,6 +102,7 @@ class HomeViewModel(
     private val _searchSnippets = MutableStateFlow<Map<String, String>>(emptyMap())
 
     val appReady = MutableStateFlow(false)
+    val cameraEngine: Flow<String> = settingsRepository.cameraEngine
 
     private val viewFilterConfigFlow = combine(
         settingsRepository.viewMode,

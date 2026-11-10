@@ -488,8 +488,9 @@ fun PageViewerScreen(
                             label = "Crop",
                             onClick = {
                                 scope.launch(Dispatchers.IO) {
-                                    val src = fileStore.getPageSrcFile(docId, currentPage.id)
-                                    val bmp = BitmapIo.decodeUpright(src, maxLongSide = 2000)
+                                    val orig = fileStore.getPageOrigFile(docId, currentPage.id)
+                                    val baseFile = if (orig.exists()) orig else fileStore.getPageSrcFile(docId, currentPage.id)
+                                    val bmp = BitmapIo.decodeUpright(baseFile, maxLongSide = 2000)
                                     withContext(Dispatchers.Main) {
                                         sourceBitmapForCrop = bmp
                                         isCropMode = true

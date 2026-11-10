@@ -32,7 +32,9 @@ object Routes {
     const val SETTINGS_SECURITY = "settings/security"
     const val LABS_ARABIC_OCR = "labs/arabic-ocr"
     const val LOCK = "lock/{docId}"
+    const val CAMERA = "camera?mode={mode}&docId={docId}"
 
+    fun camera(mode: String = "DOCS", docId: String = "") = "camera?mode=$mode&docId=$docId"
     fun document(docId: String) = "document/$docId"
     fun lock(docId: String) = "lock/$docId"
     fun pageViewer(docId: String, pageId: String) = "page/$docId/$pageId"

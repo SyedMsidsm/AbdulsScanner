@@ -76,6 +76,15 @@ object BitmapIo {
         }
     }
 
+    fun downscaleBitmap(bitmap: Bitmap, maxLongSide: Int): Bitmap {
+        val maxSide = maxOf(bitmap.width, bitmap.height)
+        if (maxSide <= maxLongSide) return bitmap
+        val scale = maxLongSide.toFloat() / maxSide
+        val w = (bitmap.width * scale).roundToInt().coerceAtLeast(1)
+        val h = (bitmap.height * scale).roundToInt().coerceAtLeast(1)
+        return Bitmap.createScaledBitmap(bitmap, w, h, true)
+    }
+
     fun saveJpeg(bitmap: Bitmap, targetFile: File, quality: Int) {
         val parent = targetFile.parentFile
         if (parent != null && !parent.exists()) parent.mkdirs()

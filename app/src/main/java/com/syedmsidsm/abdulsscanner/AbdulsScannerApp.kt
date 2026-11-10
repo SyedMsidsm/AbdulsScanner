@@ -13,6 +13,11 @@ class AbdulsScannerApp : Application() {
         super.onCreate()
         container = AppContainer(this)
         PDFBoxResourceLoader.init(this)
+        try {
+            org.opencv.android.OpenCVLoader.initLocal()
+        } catch (e: Throwable) {
+            android.util.Log.e("AbdulsScannerApp", "OpenCV init failed", e)
+        }
 
         // Clear cache/share/ on app start (Section 11.6)
         container.fileStore.clearShareDir()

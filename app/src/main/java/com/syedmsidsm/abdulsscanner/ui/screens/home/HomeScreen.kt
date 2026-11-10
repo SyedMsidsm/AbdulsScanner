@@ -80,6 +80,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.common.api.ApiException
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
@@ -104,12 +105,14 @@ fun HomeScreen(
     onNavigateToBackup: () -> Unit = {},
     onNavigateToTags: () -> Unit,
     onSharePdf: (DocumentEntity) -> Unit,
-    onShareMultiplePdfs: (List<DocumentEntity>) -> Unit = {}
+    onShareMultiplePdfs: (List<DocumentEntity>) -> Unit = {},
+    onNavigateToCamera: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val uiState by viewModel.uiState.collectAsState()
+    val cameraEngine by viewModel.cameraEngine.collectAsStateWithLifecycle(initialValue = "BUILT_IN")
 
     var docToRename by remember { mutableStateOf<DocumentEntity?>(null) }
     var renameText by remember { mutableStateOf("") }
@@ -151,6 +154,14 @@ fun HomeScreen(
             .addOnFailureListener { e ->
                 scannerErrorMsg = context.getString(R.string.scanner_unavailable)
             }
+    }
+
+    fun startScan() {
+        if (cameraEngine == "GOOGLE_SCANNER") {
+            launchScanner()
+        } else {
+            onNavigateToCamera("DOCS")
+        }
     }
 
     Scaffold(
@@ -364,7 +375,7 @@ fun HomeScreen(
                     currentRoute = Routes.HOME,
                     onNavigateToDocs = {},
                     onNavigateToTools = onNavigateToTools,
-                    onCameraClick = { launchScanner() }
+                    onCameraClick = { startScan() }
                 )
             }
         }
@@ -599,7 +610,7 @@ fun HomeScreen(
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 OutlinedButton(
-                                    onClick = { launchScanner() },
+                                    onClick = { startScan() },
                                     shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(stringResource(R.string.home_empty_scan_button))

@@ -33,6 +33,7 @@ onnxruntime = "1.20.0"
 # UI & Camera
 coil = "2.7.0"
 camerax = "1.4.1"
+opencv = "4.10.0"
 
 # Testing
 junit = "4.13.2"
@@ -88,11 +89,12 @@ pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref
 tesseract4android = { group = "cz.adaptech.tesseract4android", name = "tesseract4android", version.ref = "tesseract4Android" }
 onnxruntime-android = { group = "com.microsoft.onnxruntime", name = "onnxruntime-android", version.ref = "onnxruntime" }
 
-# Camera
+# Camera & Vision
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+opencv = { group = "org.opencv", name = "opencv", version.ref = "opencv" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

@@ -28,6 +28,7 @@ data class SettingsUiState(
     val mirrorEnabled: Boolean = true,
     val ocrSearchLanguage: String = "BOTH",
     val qrSaveHistory: Boolean = true,
+    val cameraEngine: String = "BUILT_IN",
     val docCount: Int = 0,
     val pageCount: Int = 0,
     val appStorageBytes: Long = 0L,
@@ -75,6 +76,9 @@ class SettingsViewModel(
         }
         viewModelScope.launch {
             settings.qrSaveHistory.collect { _uiState.value = _uiState.value.copy(qrSaveHistory = it) }
+        }
+        viewModelScope.launch {
+            settings.cameraEngine.collect { _uiState.value = _uiState.value.copy(cameraEngine = it) }
         }
     }
 
@@ -132,6 +136,10 @@ class SettingsViewModel(
 
     fun setQrSaveHistory(enabled: Boolean) {
         viewModelScope.launch { settings.setQrSaveHistory(enabled) }
+    }
+
+    fun setCameraEngine(engine: String) {
+        viewModelScope.launch { settings.setCameraEngine(engine) }
     }
 
     fun reReadPages() {

@@ -176,21 +176,21 @@ Legend:
 ---
 
 ## Phase 8 — Own camera
-- [ ] CameraX preview and photo capture pipeline
-- [ ] OKEN-style bottom mode slider: Book, To Text, Docs, ID Card, QR Code
-- [ ] Real-time viewfinder overlays for each mode
-- [ ] OpenCV document edge detection (Canny, contour approximation, 5-frame smoothing)
-- [ ] Auto-capture on stable document detection + manual shutter button
-- [ ] Store full raw photo in `orig/` and auto-crop in `src/` with non-destructive re-crop
-- [ ] Settings toggle: Built-in CameraX vs Google ML Kit Document Scanner
-- [ ] Runtime CAMERA permission handling
-- [ ] Final permissions audit (merged manifest inspection)
-- [ ] Build release APK, verify R8 shrinking and signing
-- [ ] Version bump to `1.0.0`
-- [ ] Build & tests for Phase 8
-- [ ] Verification of Phase 8 acceptance criteria:
-  - [ ] 1. All five camera modes function smoothly from the slider
-  - [ ] 2. Re-crop can expand beyond initial crop using raw photo
-  - [ ] 3. Google scanner fallback remains selectable in settings
-  - [ ] 4. Release APK signed, verified, and tagged v1.0.0
-- [ ] Commit and tag `v1.0.0`
+- [x] CameraX preview and photo capture pipeline
+- [x] OKEN-style bottom mode slider: Book, To Text, Docs, ID Card, QR Code
+- [x] Real-time viewfinder overlays for each mode
+- [x] OpenCV document edge detection (Canny, contour approximation, 5-frame smoothing)
+- [x] Auto-capture on stable document detection + manual shutter button
+- [x] Store full raw photo in `orig/` and auto-crop in `src/` with non-destructive re-crop
+- [x] Settings toggle: Built-in CameraX vs Google ML Kit Document Scanner
+- [x] Runtime CAMERA permission handling
+- [x] Final permissions audit (merged manifest inspection)
+- [x] Build release APK, verify R8 shrinking and signing
+- [x] Version bump to `1.0.0`
+- [x] Build & tests for Phase 8
+- [x] Verification of Phase 8 acceptance criteria:
+  - [x] 1. All five camera modes function smoothly from the slider
+  - [x] 2. Re-crop can expand beyond initial crop using raw photo
+  - [x] 3. Google scanner fallback remains selectable in settings
+  - [x] 4. Release APK signed, verified, and tagged v1.0.0
+- [x] Commit and tag `v1.0.0`

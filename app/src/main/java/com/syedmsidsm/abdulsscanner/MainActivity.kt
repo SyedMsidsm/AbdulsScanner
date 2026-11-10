@@ -26,6 +26,8 @@ import com.syedmsidsm.abdulsscanner.ui.theme.AppThemeMode
 import com.syedmsidsm.abdulsscanner.ui.nav.Routes
 import com.syedmsidsm.abdulsscanner.ui.screens.backup.BackupScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.backup.BackupViewModel
+import com.syedmsidsm.abdulsscanner.ui.screens.camera.CameraScanMode
+import com.syedmsidsm.abdulsscanner.ui.screens.camera.CameraScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.document.DocumentScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.document.DocumentViewModel
 import com.syedmsidsm.abdulsscanner.ui.screens.home.HomeScreen
@@ -61,6 +63,8 @@ import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolsScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.trash.RecycleBinScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.trash.RecycleBinViewModel
 import com.syedmsidsm.abdulsscanner.ui.theme.AbdulsScannerTheme
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -253,7 +257,10 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate(Routes.TAGS)
                             },
                             onSharePdf = { doc -> shareDocumentPdf(doc) },
-                            onShareMultiplePdfs = { docs -> shareMultipleDocumentPdfs(docs) }
+                            onShareMultiplePdfs = { docs -> shareMultipleDocumentPdfs(docs) },
+                            onNavigateToCamera = { mode ->
+                                navController.navigate(Routes.camera(mode))
+                            }
                         )
                     }
 
@@ -293,6 +300,9 @@ class MainActivity : ComponentActivity() {
                             },
                             onNavigateToSign = { dId ->
                                 navController.navigate(Routes.signature(dId))
+                            },
+                            onNavigateToCamera = { dId ->
+                                navController.navigate(Routes.camera("DOCS", dId))
                             },
                             onSharePdf = { doc -> shareDocumentPdf(doc) },
                             onShareJpg = { doc -> shareDocumentJpgs(doc) },
@@ -368,10 +378,63 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onCameraClick = {
-                                navController.navigate(Routes.HOME)
+                                lifecycleScope.launch {
+                                    val engine = container.settingsRepository.cameraEngine.first()
+                                    if (engine == "GOOGLE_SCANNER") {
+                                        navController.navigate(Routes.HOME)
+                                    } else {
+                                        navController.navigate(Routes.camera("DOCS"))
+                                    }
+                                }
                             },
                             onNavigateToRoute = { route ->
                                 navController.navigate(route)
+                            }
+                        )
+                    }
+
+                    composable(
+                        route = Routes.CAMERA,
+                        arguments = listOf(
+                            navArgument("mode") { type = NavType.StringType; defaultValue = "DOCS" },
+                            navArgument("docId") { type = NavType.StringType; defaultValue = "" }
+                        )
+                    ) { backStackEntry ->
+                        val modeParam = backStackEntry.arguments?.getString("mode") ?: "DOCS"
+                        val docIdParam = backStackEntry.arguments?.getString("docId").orEmpty()
+                        val scanMode = try {
+                            CameraScanMode.valueOf(modeParam)
+                        } catch (_: Exception) {
+                            CameraScanMode.DOCS
+                        }
+
+                        CameraScreen(
+                            container = container,
+                            initialMode = scanMode,
+                            targetDocId = if (docIdParam.isNotEmpty()) docIdParam else null,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToDocument = { docId ->
+                                navController.navigate(Routes.document(docId)) {
+                                    popUpTo(Routes.HOME)
+                                }
+                            },
+                            onNavigateToBookSplit = { docId, pageId ->
+                                navController.navigate(Routes.book(docId, pageId)) {
+                                    popUpTo(Routes.HOME)
+                                }
+                            },
+                            onNavigateToOcr = { docId ->
+                                navController.navigate(Routes.ocr(docId)) {
+                                    popUpTo(Routes.HOME)
+                                }
+                            },
+                            onNavigateToQrResult = { qrId, raw ->
+                                navController.navigate(Routes.qrResult(qrId, raw)) {
+                                    popUpTo(Routes.HOME)
+                                }
+                            },
+                            onNavigateToSettings = {
+                                navController.navigate(Routes.SETTINGS)
                             }
                         )
                     }

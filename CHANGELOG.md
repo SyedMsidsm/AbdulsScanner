@@ -2,7 +2,34 @@
 
 All notable changes to **Abdul's Scanner** will be documented in this file.
 
-## [Unreleased]
+## [1.0.0] - 2026-11-10
+
+### Added
+- Own camera implementation (`CameraScreen`) using AndroidX CameraX and OpenCV (4.10.0) with real-time edge detection and live viewfinder overlays.
+- OKEN-style bottom mode slider: Book, To Text, Docs, ID Card, QR Code with smooth switching and primary green selection.
+- Viewfinder top bar controls: Flash mode cycle (Auto, On, Off), HD mode toggle (high-resolution captures), 3x3 rule-of-thirds grid overlay toggle, and quick shortcut to Settings.
+- Viewfinder mode overlays:
+  - Docs: Live green quadrilateral bounding outline tracking detected document corners, plus adaptive status pills ("Searching doc…", "Document detected", "Hold still... capturing").
+  - Book: Top instruction banner ("Lay the book open and flat"), green dashed center spine binding line, and large translucent "A" / "B" reading order markers (automatically aligned with LTR or RTL Arabic reading direction).
+  - ID Card: Green corner brackets matching ISO/IEC 7810 ID-1 card aspect ratio with dynamic "Front page" and "Back page" indicators for automatic 2-sided composition.
+  - To Text: "OCR in batch" status pill with live document boundary detection.
+  - QR Code: Green square target box with continuous animated scanning line, and quick flashlight toggle ("Turn light on/off").
+- OpenCV document edge detection pipeline (`DocumentDetector`): analysis frames scaled to ~640 px long side, grayscale conversion, Gaussian blur (5x5), Canny edge detector (50/150 thresholds), dilation, contour detection, and convex 4-point polygon approximation via `approxPolyDP` (ε = 2% perimeter) with area > 20% of frame.
+- Corner sorting algorithm: deterministically normalizes and orders corners into Top-Left, Top-Right, Bottom-Right, and Bottom-Left.
+- 5-frame temporal smoothing: moving window averaging corner coordinates over recent frames to eliminate jitter.
+- Stability detection & auto-capture: monitors corner movement against an anchor quad; triggers auto-capture when movement remains under 2% of frame dimensions for 1 continuous second; manual shutter button remains available at all times.
+- Non-destructive raw photo storage and re-crop: full-resolution camera captures are saved into `orig/` (`originalPath`), auto-cropped result into `src/` (`sourcePath`), with detected `cropQuad` stored on `PageEntity`. Re-cropping in Page Viewer loads `orig/` so users can expand beyond the initial crop boundaries.
+- Scanner choice setting: Settings -> Scanning -> "Scanner engine" allows switching between "Built-in camera (CameraX + OpenCV)" and "Google scanner (ML Kit)".
+- Runtime `CAMERA` permission handling with custom rationale dialog ("Abdul's Scanner needs camera access to scan documents directly on your phone. All scanning is completely offline and private.").
+- ProGuard / R8 minification and resource shrinking verification with keep rules for OpenCV, Tesseract, ONNX, and PDFBox.
+- Merged manifest audit: removed unused `FOREGROUND_SERVICE` and `ACCESS_NETWORK_STATE` permissions using `tools:node="remove"`.
+- Unit tests: `DocumentDetectorTest` validating scrambled corner point sorting, 5-frame average quad calculation, and stability distance thresholds.
+- App version bumped to `1.0.0` (versionCode `800`).
+
+### Decisions
+- OpenCV native runtime is initialized locally via `OpenCVLoader.initLocal()` in `AbdulsScannerApp.onCreate()`.
+- Built-in camera serves as the default scanner engine, with Google Document Scanner remaining selectable in Settings -> Scanning.
+- Corner normalization maps points to 0.0..1.0 relative coordinates, preserving aspect ratio and rotation independence across preview resolutions.
 
 ## [0.7.0] - 2026-11-10
 

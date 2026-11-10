@@ -88,6 +88,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
@@ -114,6 +115,7 @@ fun DocumentScreen(
     onNavigateToBookSplit: (String, String) -> Unit = { _, _ -> },
     onNavigateToWatermark: ((String) -> Unit)? = null,
     onNavigateToSign: ((String) -> Unit)? = null,
+    onNavigateToCamera: ((String) -> Unit)? = null,
     onSharePdf: (DocumentEntity) -> Unit,
     onShareJpg: (DocumentEntity) -> Unit,
     onPrint: (DocumentEntity) -> Unit
@@ -121,6 +123,7 @@ fun DocumentScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsState()
+    val cameraEngine by settingsRepository.cameraEngine.collectAsStateWithLifecycle(initialValue = "BUILT_IN")
     val doc = uiState.document
 
     var isReordering by remember { mutableStateOf(false) }
@@ -510,7 +513,11 @@ fun DocumentScreen(
                         .clip(MaterialTheme.shapes.small)
                         .clickable {
                             showAddSheet = false
-                            launchAddScanner()
+                            if (cameraEngine == "GOOGLE_SCANNER") {
+                                launchAddScanner()
+                            } else {
+                                onNavigateToCamera?.invoke(doc?.id.orEmpty())
+                            }
                         }
                         .padding(vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically

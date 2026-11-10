@@ -16,10 +16,16 @@ class PageRenderer(private val fileStore: FileStore) {
 
     suspend fun renderPage(page: PageEntity): Pair<Int, Int> = withContext(Dispatchers.Default) {
         val srcFile = if (File(page.sourcePath).isAbsolute) File(page.sourcePath) else File(fileStore.filesDir, page.sourcePath)
-        require(srcFile.exists()) { "Source file not found at ${srcFile.absolutePath}" }
+        val origFile = if (!page.originalPath.isNullOrBlank()) {
+            val f = File(page.originalPath)
+            if (f.isAbsolute) f else File(fileStore.filesDir, page.originalPath)
+        } else null
 
-        // 1. Decode source image
-        var currentBitmap = BitmapIo.decodeUpright(srcFile, maxLongSide = 4000)
+        val baseFile = if (origFile != null && origFile.exists()) origFile else srcFile
+        require(baseFile.exists()) { "Source file not found at ${baseFile.absolutePath}" }
+
+        // 1. Decode base image (raw photo if available, otherwise src)
+        var currentBitmap = BitmapIo.decodeUpright(baseFile, maxLongSide = 4000)
 
         // 2. Perspective crop if cropQuad != null
         if (!page.cropQuad.isNullOrBlank() && page.cropQuad != "null") {
@@ -37,6 +43,14 @@ class PageRenderer(private val fileStore: FileStore) {
                 }
             } catch (e: Exception) {
                 // If crop fails, continue with uncropped image
+            }
+        }
+
+        // If baseFile was orig, ensure srcFile holds the cropped version
+        if (baseFile == origFile && srcFile.parentFile != null) {
+            fileStore.writeAtomically(srcFile) { fos ->
+                currentBitmap.compress(Bitmap.CompressFormat.JPEG, 95, fos)
+                fos.flush()
             }
         }
 

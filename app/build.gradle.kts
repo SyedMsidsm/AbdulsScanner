@@ -17,8 +17,8 @@ android {
         applicationId = "com.syedmsidsm.abdulsscanner"
         minSdk = 26
         targetSdk = 35
-        versionCode = 101
-        versionName = "0.1.0"
+        versionCode = 800
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -157,6 +157,7 @@ dependencies {
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
+    implementation(libs.opencv)
 
     // Testing
     testImplementation(libs.junit)
