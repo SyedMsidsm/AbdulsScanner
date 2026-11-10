@@ -138,7 +138,7 @@ fun ToolOfficeToPdfScreen(
                         } ?: throw IllegalStateException("Could not read document")
                     }
 
-                    val jobName = "Abdul's Scanner - ${fileName.removeSuffix(".docx")}"
+                    val jobName = "Abul's Scanner - ${fileName.removeSuffix(".docx")}"
                     htmlPrinter.printHtml(
                         html = html,
                         jobName = jobName,
@@ -168,7 +168,7 @@ fun ToolOfficeToPdfScreen(
                         } ?: throw IllegalStateException("Could not read spreadsheet")
                     }
 
-                    val jobName = "Abdul's Scanner - ${fileName.removeSuffix(".xlsx")}"
+                    val jobName = "Abul's Scanner - ${fileName.removeSuffix(".xlsx")}"
                     htmlPrinter.printHtml(
                         html = xlsxResult.html,
                         jobName = jobName,
@@ -401,7 +401,7 @@ fun ToolOfficeToPdfScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Once you choose \"Save as PDF\" in the Android print screen, you can add that PDF directly into Abdul's Scanner.",
+                        text = "Once you choose \"Save as PDF\" in the Android print screen, you can add that PDF directly into Abul's Scanner.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -415,7 +415,7 @@ fun ToolOfficeToPdfScreen(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Add the saved PDF to Abdul's Scanner")
+                        Text("Add the saved PDF to Abul's Scanner")
                     }
 
                     OutlinedButton(

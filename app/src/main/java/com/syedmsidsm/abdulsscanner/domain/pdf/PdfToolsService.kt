@@ -86,7 +86,7 @@ class PdfToolsService(
             val values = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, safeName)
                 put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
-                put(MediaStore.MediaColumns.RELATIVE_PATH, "Documents/Abdul's Scanner/Tools")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, "Documents/Abul's Scanner/Tools")
                 put(MediaStore.MediaColumns.IS_PENDING, 1)
             }
             val uri = context.contentResolver.insert(MediaStore.Files.getContentUri("external"), values)
@@ -102,7 +102,7 @@ class PdfToolsService(
         } else {
             @Suppress("DEPRECATION")
             val docsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-            val toolsDir = File(docsDir, "Abdul's Scanner/Tools").apply { mkdirs() }
+            val toolsDir = File(docsDir, "Abul's Scanner/Tools").apply { mkdirs() }
             val targetFile = File(toolsDir, safeName)
             sourceFile.copyTo(targetFile, overwrite = true)
             return@withContext Uri.fromFile(targetFile)

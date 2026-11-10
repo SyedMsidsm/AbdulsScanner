@@ -590,7 +590,7 @@ fun SettingsScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Mirror to Documents folder", style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                "Keeps copies in Documents/Abdul's Scanner/ for easy access via file manager or PC USB",
+                                "Keeps copies in Documents/Abul's Scanner/ for easy access via file manager or PC USB",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -763,7 +763,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Abdul's Scanner",
+                        text = "Abul's Scanner",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )

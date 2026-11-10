@@ -44,7 +44,7 @@ class BackupWriter(
     companion object {
         fun generateBackupFileName(date: Date = Date()): String {
             val sdf = SimpleDateFormat("yyyyMMdd-HHmm", Locale.ENGLISH)
-            return "AbdulsScanner-backup-${sdf.format(date)}.zip"
+            return "AbulsScanner-backup-${sdf.format(date)}.zip"
         }
 
         fun computeCrc32(file: File): Long {
@@ -311,9 +311,13 @@ class BackupWriter(
             val backupFiles = dir.listFiles()
                 .filter { file ->
                     val name = file.name ?: ""
-                    name.startsWith("AbdulsScanner-backup-") && name.endsWith(".zip")
+                    (name.startsWith("AbulsScanner-backup-") || name.startsWith("AbdulsScanner-backup-")) && name.endsWith(".zip")
                 }
-                .sortedByDescending { it.name ?: "" }
+                .sortedByDescending { file ->
+                    val name = file.name ?: ""
+                    name.removePrefix("AbulsScanner-backup-")
+                        .removePrefix("AbdulsScanner-backup-")
+                }
 
             if (backupFiles.size > keepCount) {
                 val toDelete = backupFiles.drop(keepCount)

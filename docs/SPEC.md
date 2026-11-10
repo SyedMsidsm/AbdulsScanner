@@ -86,6 +86,7 @@ Single user (the owner). Not published on the Play Store. Installed by downloadi
 | Topic | Decision |
 | --- | --- |
 | Platform | Android only, native Kotlin + Jetpack Compose (same stack as the owner's other app, Ali Educational) |
+| App name | Abul's Scanner (renamed from Abdul's Scanner on 2026-11-10; internal IDs unchanged) |
 | Scanning camera | Phases 1–7: Google ML Kit Document Scanner (Google's ready-made scanning UI). Phase 8: own CameraX camera with OKEN-style mode slider |
 | English OCR | Google ML Kit Text Recognition v2 (Latin), bundled model, offline |
 | Arabic OCR | Must be supported, offline. Ship both candidates, Tesseract (`ara+eng`) and PaddleOCR (ONNX), behind a setting, with a Labs screen where the owner compares them on his own papers and picks one. Default: Tesseract. The other engine is removed later, when the owner asks |

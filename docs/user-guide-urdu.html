@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>ابوال اسکینر (Abul's Scanner) — مکمل یوزر گائیڈ</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 18mm 16mm;
+      @bottom-center {
+        content: "صفحہ " counter(page);
+        font-family: 'Noto Nastaliq Urdu', 'Urdu Typesetting', Tahoma, sans-serif;
+        font-size: 10pt;
+        color: #777;
+      }
+    }
+    
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Urdu Typesetting', 'Arabic Typesetting', Tahoma, Arial, sans-serif;
+      font-size: 12.5pt;
+      line-height: 2.1;
+      color: #222222;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 0;
+      direction: rtl;
+      text-align: right;
+    }
+
+    .cover {
+      text-align: center;
+      padding: 40px 20px 30px 20px;
+      border-bottom: 3px solid #13A06F;
+      margin-bottom: 30px;
+      page-break-after: avoid;
+    }
+
+    .cover h1 {
+      font-size: 26pt;
+      color: #13A06F;
+      margin: 0 0 10px 0;
+      font-weight: bold;
+    }
+
+    .cover .subtitle {
+      font-size: 15pt;
+      color: #444444;
+      margin: 5px 0 15px 0;
+      font-weight: 500;
+    }
+
+    .badge-bar {
+      margin-top: 15px;
+    }
+
+    .badge {
+      display: inline-block;
+      background-color: #e8f5e9;
+      color: #0d6e4b;
+      padding: 4px 14px;
+      border-radius: 16px;
+      font-size: 11pt;
+      margin: 0 4px;
+      font-weight: bold;
+      border: 1px solid #c8e6c9;
+    }
+
+    h2 {
+      font-size: 17pt;
+      color: #0f7a54;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 6px;
+      margin-top: 35px;
+      margin-bottom: 15px;
+      page-break-after: avoid;
+    }
+
+    h3 {
+      font-size: 14pt;
+      color: #1e1e1e;
+      margin-top: 22px;
+      margin-bottom: 10px;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin: 8px 0 14px 0;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin: 8px 0 16px 25px;
+      padding-right: 20px;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    .card {
+      background-color: #f9fbf9;
+      border: 1px solid #dcdcdc;
+      border-right: 5px solid #13A06F;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 18px 0;
+      page-break-inside: avoid;
+    }
+
+    .card.warning {
+      background-color: #fffbf0;
+      border-right-color: #f59e0b;
+    }
+
+    .card.tip {
+      background-color: #f0fdf4;
+      border-right-color: #10b981;
+    }
+
+    .card-title {
+      font-size: 13pt;
+      font-weight: bold;
+      color: #0f7a54;
+      margin-bottom: 6px;
+    }
+
+    .card.warning .card-title {
+      color: #b45309;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 18px 0;
+      font-size: 11.5pt;
+      page-break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid #d0d7de;
+      padding: 10px 14px;
+      text-align: right;
+    }
+
+    th {
+      background-color: #f0f7f3;
+      color: #0f7a54;
+      font-weight: bold;
+    }
+
+    tr:nth-child(even) {
+      background-color: #fafafa;
+    }
+
+    .step-number {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      background-color: #13A06F;
+      color: white;
+      text-align: center;
+      line-height: 24px;
+      border-radius: 50%;
+      font-size: 11pt;
+      font-weight: bold;
+      margin-left: 8px;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .tag-pill {
+      background: #eef2ff;
+      color: #3730a3;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10.5pt;
+      border: 1px solid #c7d2fe;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- سرورق / ٹائٹل -->
+  <div class="cover">
+    <h1>ابوال اسکینر (Abul's Scanner)</h1>
+    <div class="subtitle">اینڈرائیڈ کے لیے مکمل، محفوظ اور اشتہارات سے پاک ڈاکومنٹ اسکینر — یوزر گائیڈ</div>
+    <div class="badge-bar">
+      <span class="badge">100% آف لائن (انٹرنیٹ کے بغیر)</span>
+      <span class="badge">کوئی اشتہار نہیں</span>
+      <span class="badge">لاگ اِن کی ضرورت نہیں</span>
+      <span class="badge">مکمل رازداری</span>
+    </div>
+  </div>
+
+  <!-- فہرست مضامین -->
+  <h2>فہرست مضامین</h2>
+  <ol>
+    <li>تعارف اور بنیادی خصوصیات</li>
+    <li>ایپ انسٹال کرنے کا آسان طریقہ</li>
+    <li>ہوم اسکرین اور دستاویزات کی ترتیب</li>
+    <li>کیمرہ اور اسکیننگ کے موڈز (Docs, Book, ID Card, To Text, QR Code)</li>
+    <li>کیمرے کے ٹاپ بار کنٹرولز (ٹارچ، ایچ ڈی ریزولوشن، فلٹر گرڈ)</li>
+    <li>اسکین کے بعد کراپ اور پیج ایڈیٹر (Crop After Scan & Loupe)</li>
+    <li>تمام 7 تصویری فلٹرز اور ان کا درست انتخاب</li>
+    <li>تحریر پڑھنا (OCR) اور مکمل تلاش (Search)</li>
+    <li>پی ڈی ایف کے مفید ٹولز (Merge, Split, Watermark, Sign, Password)</li>
+    <li>ورڈ اور ایکسل سے پی ڈی ایف بنانا (Office to PDF)</li>
+    <li>بیک اپ، ایپ لاک (سیکیورٹی) اور ری سائیکل بن</li>
+    <li>ضروری ہدایات اور احتیاطی تدابیر</li>
+  </ol>
+
+  <!-- حصہ 1 -->
+  <h2>1. تعارف اور بنیادی خصوصیات</h2>
+  <p>
+    <strong>ابوال اسکینر (Abul's Scanner)</strong> ایک جدید ترین، تیز رفتار اور ذاتی موبائل اسکینر ہے جسے کیم اسکینر (CamScanner) اور اوکن (OKEN) کے متبادل کے طور پر تیار کیا گیا ہے۔ اس ایپ کی سب سے بڑی خوبی یہ ہے کہ یہ <strong>مکمل طور پر آف لائن</strong> کام کرتی ہے۔ آپ کی کوئی بھی تصویر، دستاویز یا فائل کسی سرور پر اپ لوڈ نہیں ہوتی، نہ ہی ایپ میں کوئی اشتہار ہے اور نہ ہی کسی قسم کے اکاؤنٹ یا لاگ اِن کی ضرورت ہے۔
+  </p>
+
+  <div class="card tip">
+    <div class="card-title">اہم خصوصیات ایک نظر میں:</div>
+    <ul>
+      <li><strong>تمام قسم کی اسکیننگ:</strong> عام کاغذات، کتابیں، دو طرفہ شناختی کارڈز اور کیو آر کوڈز۔</li>
+      <li><strong>اردو اور انگریزی تحریر پڑھنا (OCR):</strong> کاغذ کی تصویر سے خودکار اردو و انگریزی متن حاصل کریں۔</li>
+      <li><strong>7 جدید فلٹرز:</strong> سائے ختم کرنے والا (No Shadow)، جادوئی رنگ (Magic Color)، اور بلیک اینڈ وائٹ۔</li>
+      <li><strong>پی ڈی ایف ٹول کٹ:</strong> پی ڈی ایف جوڑیں، کاٹیں، سائز چھوٹا کریں، واٹر مارک لگائیں اور دستخط کریں۔</li>
+      <li><strong>خودکار بیک اپ:</strong> آپ کے فون کے منتخب فولڈر میں خودکار بیک اپ تاکہ ڈیٹا کبھی ضائع نہ ہو۔</li>
+    </ul>
+  </div>
+
+  <!-- حصہ 2 -->
+  <h2>2. ایپ انسٹال کرنے کا آسان طریقہ</h2>
+  <p>ابوال اسکینر کو اپنے اینڈرائیڈ فون پر انسٹال کرنا انتہائی آسان ہے:</p>
+  <ol>
+    <li>سب سے پہلے اپنے فون میں <strong>AbulsScanner-1.0.0.apk</strong> فائل ڈاؤن لوڈ کریں (یا اپنے کمپیوٹر سے فون کے ڈاؤن لوڈز فولڈر میں کاپی کریں)۔</li>
+    <li>اپنے فون میں <strong>Files</strong> یا <strong>My Files</strong> کھولیں اور <strong>Downloads</strong> میں جائیں۔</li>
+    <li>وہاں موجود <code>AbulsScanner-1.0.0.apk</code> پر کلک کریں۔</li>
+    <li>اگر فون پوچھے کہ "Install unknown apps" تو <strong>Settings</strong> پر ٹیپ کر کے <strong>Allow from this source</strong> کو آن کر دیں، پھر <strong>Install</strong> دبائیں۔</li>
+    <li>انسٹالیشن مکمل ہونے کے بعد <strong>Open</strong> دبائیں۔ ایپ فورا کھل جائے گی اور لوگو کی خوبصورت اینیمیشن نظر آئے گی۔</li>
+  </ol>
+
+  <div class="card">
+    <div class="card-title">اپ ڈیٹ کرتے وقت ڈیٹا محفوظ رہتا ہے:</div>
+    جب بھی ایپ کا نیا ورژن آئے گا، آپ پرانے ورژن کو ڈیلیٹ کیے بغیر نئے APK کو اوپر سے انسٹال (Update) کر سکتے ہیں۔ آپ کے تمام اسکین شدہ کاغذات، ٹیگز اور سیٹنگز بالکل محفوظ رہیں گی۔
+  </div>
+
+  <!-- حصہ 3 -->
+  <div class="page-break"></div>
+  <h2>3. ہوم اسکرین اور دستاویزات کی ترتیب</h2>
+  <p>
+    ہوم اسکرین وہ جگہ ہے جہاں آپ کے تمام اسکین شدہ کاغذات منظم انداز میں محفوظ رہتے ہیں۔
+  </p>
+  <ul>
+    <li><strong>دستاویز کھولنا:</strong> کسی بھی دستاویز پر ٹیپ کرنے سے اس کے تمام صفحات کھل جاتے ہیں۔</li>
+    <li><strong>سرچ بار (Search):</strong> اوپر سرچ آئیکون پر ٹیپ کر کے آپ کسی بھی دستاویز کا نام یا اس کے اندر موجود کوئی بھی اردو یا انگریزی لفظ لکھ کر تلاش کر سکتے ہیں۔</li>
+    <li><strong>ترتیب (Sort):</strong> اوپر تین نقطوں سے آپ دستاویزات کو تاریخ (Date) یا نام (Name) کے لحاظ سے ترتیب دے سکتے ہیں۔</li>
+    <li><strong>گرڈ اور لسٹ ویو:</strong> آپ دستاویزات کو لسٹ کی شکل میں یا گرڈ (بڑے تھمب نیلز) کی شکل میں دیکھ سکتے ہیں۔</li>
+    <li><strong>ٹیگز (Tags):</strong> آپ اپنی فائلوں کو ٹیگز (مثلاً "دفتری", "بل", "تعلیمی", "ذاتی") لگا سکتے ہیں تاکہ متعلقہ فائلیں ایک کلک پر مل سکیں۔</li>
+  </ul>
+
+  <!-- حصہ 4 -->
+  <h2>4. کیمرہ اور اسکیننگ کے موڈز</h2>
+  <p>
+    اسکیننگ شروع کرنے کے لیے نیچے دیے گئے سبز کیمرہ بٹن پر ٹیپ کریں۔ کیمرہ کھلتے ہی نیچے ایک سلائیڈر نظر آئے گا جس میں 5 مخصوص موڈز موجود ہیں:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">موڈ (Mode)</th>
+        <th>کام اور استعمال کا طریقہ</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. Docs (دستاویزات)</strong></td>
+        <td>عام کاغذات، رسیدیں اور خطوط اسکین کرنے کے لیے۔ کیمرہ خودکار طور پر کاغذ کے کونے تلاش کر کے سبز آؤٹ لائن بنا دیتا ہے اور ہاتھ سیدھا رکھنے پر خود ہی تصویر کھینچ لیتا ہے۔</td>
+      </tr>
+      <tr>
+        <td><strong>2. Book (کتابیں)</strong></td>
+        <td>کھلی کتاب اسکین کرنے کے لیے۔ اسکرین کے درمیان سبز لکیر کتاب کے جوڑ (Spine) پر رکھیں؛ ایپ دونوں صفحات کو الگ الگ کاٹ کر درست صفحہ بندی (اردو کے لیے دائیں سے بائیں) کے مطابق خود ہی محفوظ کر دے گی۔</td>
+      </tr>
+      <tr>
+        <td><strong>3. ID Card (شناختی کارڈ)</strong></td>
+        <td>شناختی کارڈ یا ڈرائیونگ لائسنس کے لیے۔ پہلے سامنے والے حصے کی تصویر لیں، پھر الٹی طرف کی۔ ایپ دونوں رخوں کو خودکار طور پر A4 سائز کے سفید کاغذ پر بالکل اصلی سائز میں ایک ساتھ سجا دے گی۔</td>
+      </tr>
+      <tr>
+        <td><strong>4. To Text (تحریر نکالنا)</strong></td>
+        <td>کسی بھی چھپے ہوئے کاغذ سے براہِ راست متن پڑھنے اور کاپی کرنے کے لیے موڈ۔</td>
+      </tr>
+      <tr>
+        <td><strong>5. QR Code (کیو آر کوڈ)</strong></td>
+        <td>کیو آر کوڈ یا بارکوڈ اسکین کرنے کے لیے۔ وائی فائی پاس ورڈ، ویب سائٹ لنکس اور رابطے فوری پڑھتا ہے۔</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- حصہ 5 -->
+  <h2>5. کیمرے کے ٹاپ بار کنٹرولز</h2>
+  <p>کیمرے کے اوپری حصے میں 5 انتہائی اہم اور کارآمد کنٹرولز دیے گئے ہیں:</p>
+  <ul>
+    <li><strong>1. فلیش / ٹارچ (Flash / Torch):</strong> لائٹنگ کے آپشنز: Auto, On, Off، اور <strong>Torch</strong> (ٹارچ مسلسل جلتی رہتی ہے تاکہ اندھیرے یا سائے میں کاغذ بالکل صاف نظر آئے)۔</li>
+    <li><strong>2. فوٹو سائز / HD:</strong> آپ کے موبائل کیمرے کی اصل 4:3 ریزولوشنز (مثلاً 12MP, 8MP, وغیرہ)۔ اگر آپ کو انتہائی باریک اور واضح پرنٹ چاہیے تو بڑا سائز منتخب کریں۔</li>
+    <li><strong>3. فلٹر پینل (Filter):</strong> اس پر ٹیپ کرنے سے اسکرین پر کیمرے کے لائیو فریم کے ساتھ تمام 7 فلٹرز کے چھوٹے تھمب نیلز نظر آتے ہیں۔ آپ تصویر لینے سے پہلے ہی دیکھ سکتے ہیں کہ کون سا فلٹر بہترین رزلٹ دے گا۔</li>
+    <li><strong>4. گرڈ (Grid):</strong> کاغذ کو سیدھا رکھنے کے لیے 3×3 گرڈ لائنیں ظاہر کرتا ہے۔</li>
+    <li><strong>5. سیٹنگز (Settings):</strong> اس سے ایک فوری مینو کھلتا ہے جس میں <strong>Auto shutter</strong> (خودکار تصویر)، <strong>Auto crop</strong> (خودکار کٹائی)، اور <strong>Mute</strong> (شٹر کی آواز بند کرنا) شامل ہیں۔</li>
+  </ul>
+
+  <!-- حصہ 6 -->
+  <div class="page-break"></div>
+  <h2>6. اسکین کے بعد کراپ اور پیج ایڈیٹر (Crop After Scan)</h2>
+  <p>
+    تصویر بننے کے بعد فوراً <strong>Crop After Scan</strong> اسکرین کھل جاتی ہے:
+  </p>
+  <ul>
+    <li><strong>4 کونوں والے ہینڈلز:</strong> کاغذ کے کونوں پر موجود 4 گول دائروں کو اپنی انگلی سے گھسیٹ کر درست جگہ پر لائیں۔</li>
+    <li><strong>میگنی فائنگ لوپ (Loupe):</strong> جیسے ہی آپ کسی کونے کو چھوتے ہیں، آپ کی انگلی کے اوپر ایک گول شیشہ (Magnifier) بن جاتا ہے جو کاغذ کے کونے کو زوم کر کے دکھاتا ہے تاکہ ایک ملی میٹر کا بھی فرق نہ رہے۔</li>
+    <li><strong>Rotate (گھمانا):</strong> اگر تصویر الٹی ہو جائے تو ایک ٹیپ پر صفحہ 90 ڈگری گھوم جاتا ہے۔</li>
+    <li><strong>Retake (دوبارہ تصویر):</strong> اگر تصویر دھندلی ہو تو Retake دبا کر دوبارہ تصویر کھینچیں۔</li>
+    <li><strong>Next Page / Done:</strong> اگر مزید صفحات ہیں تو <em>Next page</em> دبائیں؛ ورنہ <em>Done</em> دبا کر دستاویز مکمل کر لیں۔</li>
+  </ul>
+
+  <!-- حصہ 7 -->
+  <h2>7. تمام 7 تصویری فلٹرز اور ان کا درست انتخاب</h2>
+  <p>پیج ایڈیٹر میں نیچے تمام 7 فلٹرز بالترتیب موجود ہیں:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">فلٹر کا نام</th>
+        <th>یہ کیا کرتا ہے اور کب استعمال کریں؟</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. No shadow [BETA]</strong></td>
+        <td><strong>سائے ختم کرنے والا:</strong> اگر تصویر لیتے وقت موبائل یا ہاتھ کا سایہ کاغذ پر پڑ رہا ہو تو یہ فلٹر پورے کاغذ کی روشنی کو ایک جیسا کر کے سائے کو غائب کر دیتا ہے۔</td>
+      </tr>
+      <tr>
+        <td><strong>2. Original</strong></td>
+        <td><strong>اصلی تصویر:</strong> کیمرے سے لی گئی اصل بغیر کسی تبدیلی کے تصویر۔</td>
+      </tr>
+      <tr>
+        <td><strong>3. Lighten</strong></td>
+        <td><strong>روشنی بڑھانا:</strong> اگر کاغذ تھوڑا پیلا یا مدہم ہو تو یہ پس منظر کو سفید اور صاف کرتا ہے۔</td>
+      </tr>
+      <tr>
+        <td><strong>4. Magic Color</strong></td>
+        <td><strong>جادوئی رنگ:</strong> رنگین دستاویزات، کتابوں کے سرورق اور میگزین کے لیے بہترین۔ رنگوں کو نکھارتا ہے اور تحریر کو انتہائی گہرا اور واضح کرتا ہے۔</td>
+      </tr>
+      <tr>
+        <td><strong>5. Grayscale</strong></td>
+        <td><strong>گرے اسکیل:</strong> تمام رنگوں کو ختم کر کے بلیک اینڈ وائٹ فوٹوگرافک شیڈز میں تبدیل کرتا ہے۔</td>
+      </tr>
+      <tr>
+        <td><strong>6. B&W</strong></td>
+        <td><strong>خالص سیاہ و سفید:</strong> دفتری کاغذات، قانونی دستاویزات اور کتابی صفحات کے لیے سب سے بہترین۔ پس منظر کو 100% سفید اور ہر لفظ کو پکا سیاہ کر دیتا ہے (پرنٹ نکالنے کے لیے آئیڈیل)۔</td>
+      </tr>
+      <tr>
+        <td><strong>7. Eco</strong></td>
+        <td><strong>سیاہی کی بچت (Eco):</strong> پرنٹر کی سیاہی بچانے والا فلٹر۔ پرنٹنگ کے اخراجات کم رکھنے کے لیے انتہائی موزوں ہے۔</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- حصہ 8 -->
+  <h2>8. تحریر پڑھنا (OCR) اور مکمل تلاش</h2>
+  <p>ابوال اسکینر میں مکمل آف لائن OCR موجود ہے:</p>
+  <ul>
+    <li>کسی بھی صفحے کو کھول کر نیچے دیے گئے <strong>To Text</strong> بٹن پر ٹیپ کریں۔</li>
+    <li>زبان منتخب کریں: <strong>English</strong>، <strong>Arabic/Urdu</strong>، یا <strong>Both</strong>۔</li>
+    <li>ایپ تصویر سے تحریر پڑھ کر اسکرین پر دکھا دے گی۔ آپ تحریر میں ترمیم کر سکتے ہیں، کاپی کر سکتے ہیں، یا واٹس ایپ وغیرہ پر شیئر کر سکتے ہیں۔</li>
+    <li><strong>پوری دستاویزات میں تلاش:</strong> جب بھی آپ کوئی صفحہ اسکین کرتے ہیں، ایپ پس منظر میں اس کے الفاظ کو انڈیکس کر لیتی ہے۔ آپ ہوم اسکرین کے سرچ بار میں صرف ایک لفظ لکھیں گے تو وہ فائل فورا سامنے آ جائے گی۔</li>
+  </ul>
+
+  <!-- حصہ 9 -->
+  <div class="page-break"></div>
+  <h2>9. پی ڈی ایف کے مفید ٹولز (PDF Tools)</h2>
+  <p>ایپ کے نیچے دائیں جانب <strong>Tools</strong> ٹیب پر ٹیپ کریں، جہاں یہ تمام ٹولز موجود ہیں:</p>
+
+  <div class="card">
+    <div class="card-title">اہم پی ڈی ایف ٹولز:</div>
+    <ul>
+      <li><strong>PDF Merge (جوڑنا):</strong> دو یا دو سے زیادہ پی ڈی ایف فائلوں کو ملا کر ایک فائل بنائیں۔</li>
+      <li><strong>PDF Split (کاٹنا):</strong> کسی بڑی پی ڈی ایف میں سے مخصوص صفحات الگ کر کے نئی فائل بنائیں۔</li>
+      <li><strong>PDF Compress (سائز چھوٹا کرنا):</strong> بڑی پی ڈی ایف فائل کا سائز 50% سے 80% تک کم کریں تاکہ ای میل یا واٹس ایپ پر آسانی سے بھیجی جا سکے۔</li>
+      <li><strong>Watermark (واٹر مارک):</strong> صفحات پر اپنا نام، ادارے کا نام یا "محفوظ" کا واٹر مارک لگائیں۔ اس میں اردو متن اور فونٹ کی مکمل سپورٹ موجود ہے۔</li>
+      <li><strong>Signatures (دستخط لگانا):</strong> اپنی انگلی سے اسکرین پر دستخط کریں، اسے محفوظ رکھیں اور کسی بھی پی ڈی ایف کے کسی بھی صفحے پر جہاں چاہیں گھسیٹ کر لگا دیں۔</li>
+      <li><strong>PDF Password (پاس ورڈ لگانا / ہٹانا):</strong> اپنی حساس پی ڈی ایف فائل کو 256-bit پاس ورڈ سے محفوظ کریں۔ پاس ورڈ کے بغیر کوئی دوسرا شخص اسے نہیں کھول سکے گا۔</li>
+      <li><strong>PDF to JPG:</strong> پی ڈی ایف کے تمام صفحات کو ہائی کوالٹی تصاویر (JPG) بنا کر فون کی گیلری (Pictures/Abul's Scanner) میں محفوظ کریں۔</li>
+    </ul>
+  </div>
+
+  <!-- حصہ 10 -->
+  <h2>10. ورڈ اور ایکسل سے پی ڈی ایف بنانا (Office to PDF)</h2>
+  <p>اگر آپ کے فون میں مائیکروسافٹ ورڈ (<code>.docx</code>) یا ایکسل (<code>.xlsx</code>) فائل موجود ہے تو آپ کو کمپیوٹر کھولنے کی ضرورت نہیں:</p>
+  <ol>
+    <li>ٹولز میں جائیں اور <strong>Word to PDF</strong> یا <strong>Excel to PDF</strong> منتخب کریں۔</li>
+    <li>اپنے فون سے فائل منتخب کریں۔</li>
+    <li>ایپ فائل کو خودکار طور پر پی ڈی ایف میں بدل دے گی، جس کے بعد آپ اسے محفوظ یا شیئر کر سکتے ہیں یا ابوال اسکینر میں شامل کر سکتے ہیں۔</li>
+  </ol>
+
+  <!-- حصہ 11 -->
+  <h2>11. بیک اپ، ایپ لاک اور ری سائیکل بن</h2>
+  <ul>
+    <li><strong>فون میں خودکار بیک اپ:</strong> <em>Settings &rarr; Backup</em> میں جا کر بیک اپ فولڈر چن لیں۔ ایپ ہر ہفتے خودکار بیک اپ فائل (<code>AbulsScanner-backup-...zip</code>) محفوظ رکھے گی اور پرانی فائلوں کی صفائی بھی خود کرے گی۔</li>
+    <li><strong>ری سائیکل بن (Recycle Bin):</strong> اگر غلطی سے کوئی دستاویز ڈیلیٹ ہو جائے تو پریشان نہ ہوں! وہ فوری طور پر ری سائیکل بن میں چلی جاتی ہے جہاں 30 دن تک محفوظ رہتی ہے۔ آپ ایک کلک پر اسے واپس بحال (Restore) کر سکتے ہیں۔</li>
+    <li><strong>ایپ لاک (PIN / Fingerprint):</strong> سیٹنگز میں جا کر 4 ہندسوں کا پن کوڈ یا فنگر پرنٹ آن کر دیں۔ جب بھی آپ ایپ کھولیں گے تو بغیر پاس ورڈ کے کوئی آپ کی ذاتی دستاویزات نہیں دیکھ سکے گا۔</li>
+    <li><strong>Documents فولڈر میں خودکار کاپی:</strong> تمام تیار شدہ پی ڈی ایف فائلیں آپ کے فون کے <code>Documents/Abul's Scanner/</code> فولڈر میں بھی بیک وقت محفوظ ہوتی ہیں تاکہ کمپیوٹر سے کیبل لگا کر یا فائل مینیجر سے آپ انہیں باآسانی حاصل کر سکیں۔</li>
+  </ul>
+
+  <!-- حصہ 12 -->
+  <div class="card warning">
+    <div class="card-title">12. ضروری ہدایات اور احتیاطی تدابیر</div>
+    <ol>
+      <li><strong>ریلیز کی (Release Key) کی حفاظت:</strong> ایپ کو سائن کرنے والی کی فائل (<code>abdulsscanner-release.jks</code>) اور پاس ورڈز کی 2 کاپیاں الگ الگ محفوظ جگہوں (مثلاً یو ایس بی ڈرائیو یا پرائیویٹ کلاؤڈ) پر ضرور رکھیں۔ یہ چابی آئندہ ہر اپ ڈیٹ کے لیے ضروری ہے۔</li>
+      <li><strong>آف لائن تحفظ:</strong> یہ ایپ انٹرنیٹ کا بالکل استعمال نہیں کرتی، لہٰذا آپ کے ڈیٹا کے چوری ہونے یا آن لائن لیک ہونے کا کوئی خطرہ نہیں ہے۔</li>
+      <li><strong>کیمرے کا شیشہ صاف رکھیں:</strong> اسکیننگ سے پہلے موبائل کیمرے کے لینز کو نرم کپڑے سے صاف کر لیں تاکہ باریک تحریر بھی انتہائی واضح اور صاف نظر آئے۔</li>
+    </ol>
+  </div>
+
+</body>
+</html>

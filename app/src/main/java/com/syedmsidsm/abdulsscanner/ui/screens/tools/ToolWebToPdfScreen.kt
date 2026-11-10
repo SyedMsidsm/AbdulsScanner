@@ -110,7 +110,7 @@ fun ToolWebToPdfScreen(
                             val wv = webViewInstance ?: return@IconButton
                             try {
                                 val printManager = context.getSystemService(Context.PRINT_SERVICE) as? PrintManager
-                                val jobName = "Abdul's Scanner - ${webPageTitle.take(30)}"
+                                val jobName = "Abul's Scanner - ${webPageTitle.take(30)}"
                                 printManager?.print(
                                     jobName,
                                     wv.createPrintDocumentAdapter(jobName),
@@ -232,7 +232,7 @@ fun ToolWebToPdfScreen(
                     val wv = webViewInstance ?: return@Button
                     try {
                         val printManager = context.getSystemService(Context.PRINT_SERVICE) as? PrintManager
-                        val jobName = "Abdul's Scanner - ${webPageTitle.take(30)}"
+                        val jobName = "Abul's Scanner - ${webPageTitle.take(30)}"
                         printManager?.print(
                             jobName,
                             wv.createPrintDocumentAdapter(jobName),
@@ -270,7 +270,7 @@ fun ToolWebToPdfScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Did you save the PDF with Android print? You can add it directly to Abdul's Scanner as an editable document.",
+                        text = "Did you save the PDF with Android print? You can add it directly to Abul's Scanner as an editable document.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -284,7 +284,7 @@ fun ToolWebToPdfScreen(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Add the saved PDF to Abdul's Scanner")
+                        Text("Add the saved PDF to Abul's Scanner")
                     }
 
                     OutlinedButton(

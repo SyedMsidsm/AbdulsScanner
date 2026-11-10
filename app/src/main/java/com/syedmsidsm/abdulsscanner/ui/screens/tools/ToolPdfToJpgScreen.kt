@@ -113,7 +113,7 @@ fun ToolPdfToJpgScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Pictures/Abdul's Scanner/$targetFolderName/",
+                        text = "Pictures/Abul's Scanner/$targetFolderName/",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary

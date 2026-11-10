@@ -1,4 +1,4 @@
-# ProGuard & R8 rules for Abdul's Scanner
+# ProGuard & R8 rules for Abul's Scanner
 
 # PdfBox-Android rules
 -keep class com.tom_roush.pdfbox.** { *; }

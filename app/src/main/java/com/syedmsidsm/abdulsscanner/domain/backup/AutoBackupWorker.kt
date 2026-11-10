@@ -136,7 +136,7 @@ class AutoBackupWorker(
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.splash_icon)
-            .setContentTitle("Abdul's Scanner")
+            .setContentTitle("Abul's Scanner")
             .setContentText("Automatic backup failed — choose the folder again")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)

@@ -89,7 +89,7 @@ class PdfBuilder(private val fileStore: FileStore) {
         PDDocument().use { pdf ->
             val info = PDDocumentInformation().apply {
                 title = document.name
-                producer = "Abdul's Scanner"
+                producer = "Abul's Scanner"
             }
             pdf.documentInformation = info
 

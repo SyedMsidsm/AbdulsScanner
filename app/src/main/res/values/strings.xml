@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Abdul\'s Scanner</string>
+    <string name="app_name">Abul\'s Scanner</string>
 
     <!-- Navigation & Tabs -->
     <string name="nav_docs">Docs</string>

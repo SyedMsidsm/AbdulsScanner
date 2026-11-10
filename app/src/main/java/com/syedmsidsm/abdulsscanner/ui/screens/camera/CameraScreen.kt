@@ -1703,7 +1703,7 @@ fun CameraPermissionRationale(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Abdul's Scanner needs camera access to scan documents directly on your phone. All scanning is completely offline and private.",
+                text = "Abul's Scanner needs camera access to scan documents directly on your phone. All scanning is completely offline and private.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.8f),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center

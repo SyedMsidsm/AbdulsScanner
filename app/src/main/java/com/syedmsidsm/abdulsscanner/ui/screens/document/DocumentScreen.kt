@@ -675,7 +675,7 @@ fun DocumentScreen(
                             showMoreSheet = false
                             scope.launch {
                                 val count = MediaStoreExporter.exportJpgsToPictures(context, doc, uiState.pages, fileStore)
-                                android.widget.Toast.makeText(context, "Exported $count pages to Pictures/Abdul's Scanner", android.widget.Toast.LENGTH_LONG).show()
+                                android.widget.Toast.makeText(context, "Exported $count pages to Pictures/Abul's Scanner", android.widget.Toast.LENGTH_LONG).show()
                             }
                         }
                         .padding(vertical = 12.dp),

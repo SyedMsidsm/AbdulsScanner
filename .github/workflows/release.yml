@@ -38,8 +38,8 @@ jobs:
           if [ -z "$KEYSTORE_BASE64" ]; then
             echo "::warning::KEYSTORE_BASE64 secret is not configured. Building debug APK as fallback."
             ./gradlew assembleDebug
-            cp app/build/outputs/apk/debug/app-debug.apk "AbdulsScanner-${VERSION_TAG}-debug.apk"
-            echo "apk_path=AbdulsScanner-${VERSION_TAG}-debug.apk" >> $GITHUB_OUTPUT
+            cp app/build/outputs/apk/debug/app-debug.apk "AbulsScanner-${VERSION_TAG}-debug.apk"
+            echo "apk_path=AbulsScanner-${VERSION_TAG}-debug.apk" >> $GITHUB_OUTPUT
             echo "is_signed=false" >> $GITHUB_OUTPUT
           else
             echo "Keystore secret found. Decoding keystore..."
@@ -54,8 +54,8 @@ jobs:
             ./gradlew assembleRelease
             rm -f "$KEYSTORE_FILE"
             
-            cp app/build/outputs/apk/release/app-release.apk "AbdulsScanner-${VERSION_TAG}.apk"
-            echo "apk_path=AbdulsScanner-${VERSION_TAG}.apk" >> $GITHUB_OUTPUT
+            cp app/build/outputs/apk/release/app-release.apk "AbulsScanner-${VERSION_TAG}.apk"
+            echo "apk_path=AbulsScanner-${VERSION_TAG}.apk" >> $GITHUB_OUTPUT
             echo "is_signed=true" >> $GITHUB_OUTPUT
           fi
 
@@ -77,6 +77,6 @@ jobs:
         with:
           files: ${{ steps.build_apk.outputs.apk_path }}
           body: ${{ steps.release_notes.outputs.notes }}
-          name: "Abdul's Scanner ${{ github.ref_name }}"
+          name: "Abul's Scanner ${{ github.ref_name }}"
           draft: false
           prerelease: false

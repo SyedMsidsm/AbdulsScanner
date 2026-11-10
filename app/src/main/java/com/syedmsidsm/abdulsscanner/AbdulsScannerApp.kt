@@ -3,6 +3,7 @@ package com.syedmsidsm.abdulsscanner
 import android.app.Application
 import com.syedmsidsm.abdulsscanner.di.AppContainer
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import kotlinx.coroutines.launch
 
 class AbdulsScannerApp : Application() {
 
@@ -24,5 +25,14 @@ class AbdulsScannerApp : Application() {
 
         // Schedule daily trash purge (Section 12.6)
         com.syedmsidsm.abdulsscanner.domain.safety.TrashPurgeWorker.schedule(this)
+
+        // Perform one-time migration to Abul's Scanner if needed (docs/RENAME-TO-ABULS-SCANNER.md)
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            container.mirrorStore.migrateToAbulScanner(
+                documentDao = container.database.documentDao(),
+                fileStore = container.fileStore,
+                settingsRepository = container.settingsRepository
+            )
+        }
     }
 }

@@ -1,7 +1,7 @@
-# Abdul's Scanner
+# Abul's Scanner
 
 <p align="center">
-  <img src="docs/logo/abdulsscanner-icon-512.png" alt="Abdul's Scanner Logo" width="160" height="160" />
+  <img src="docs/logo/abdulsscanner-icon-512.png" alt="Abul's Scanner Logo" width="160" height="160" />
 </p>
 
 A personal Android document-scanner app modelled on OKEN (CamScanner-style), with every scanning feature and none of the ads, logins, premium upsells, or data-loss risks. Everything runs entirely offline on your phone.
@@ -18,7 +18,7 @@ A personal Android document-scanner app modelled on OKEN (CamScanner-style), wit
 ## How to Install on Your Phone
 
 1. Open the [Releases](https://github.com/SyedMsidsm/AbdulsScanner/releases) page on your Android phone's web browser.
-2. Download the latest `AbdulsScanner-x.y.z.apk`.
+2. Download the latest `AbulsScanner-x.y.z.apk`.
 3. If prompted by your browser, tap **Settings** and enable **Allow from this source** ("Install unknown apps").
 4. Tap **Install** (or **Update**). Updating keeps all your documents and settings safe.
 

@@ -72,7 +72,7 @@ class BackupReader(
             val manifest = json.decodeFromString<BackupManifest>(manifestStr)
 
             if (manifest.format != BackupManifest.FORMAT_NAME) {
-                throw IllegalArgumentException("Not a valid Abdul's Scanner backup file")
+                throw IllegalArgumentException("Not a valid Abul's Scanner backup file")
             }
             if (manifest.formatVersion > BackupManifest.CURRENT_VERSION) {
                 throw IllegalArgumentException("Backup is from a newer version (v${manifest.formatVersion}). Please update the app to restore.")

@@ -208,7 +208,7 @@ class ToTextViewModel(
             val values = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, "$safeName.txt")
                 put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
-                put(MediaStore.MediaColumns.RELATIVE_PATH, "Documents/Abdul's Scanner")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, "Documents/Abul's Scanner")
                 put(MediaStore.MediaColumns.IS_PENDING, 1)
             }
             val uri = context.contentResolver.insert(MediaStore.Files.getContentUri("external"), values)
@@ -224,7 +224,7 @@ class ToTextViewModel(
         } else {
             @Suppress("DEPRECATION")
             val docsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-            val targetDir = File(docsDir, "Abdul's Scanner").apply { mkdirs() }
+            val targetDir = File(docsDir, "Abul's Scanner").apply { mkdirs() }
             val targetFile = File(targetDir, "$safeName.txt")
             FileOutputStream(targetFile).use { it.write(text.toByteArray(Charsets.UTF_8)) }
             return@withContext Uri.fromFile(targetFile)

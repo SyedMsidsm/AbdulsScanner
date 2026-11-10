@@ -126,7 +126,7 @@ fun LockScreen(
         })
 
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Unlock Abdul's Scanner")
+            .setTitle("Unlock Abul's Scanner")
             .setSubtitle("Use your fingerprint to view locked document")
             .setNegativeButtonText("Use PIN")
             .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)

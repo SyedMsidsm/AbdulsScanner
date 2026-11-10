@@ -97,7 +97,7 @@ fun ToolResultBottomSheet(
             }
 
             Text(
-                text = "Saved to Documents/Abdul's Scanner/Tools/",
+                text = "Saved to Documents/Abul's Scanner/Tools/",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -193,7 +193,7 @@ fun ToolResultBottomSheet(
                     Icon(Icons.Outlined.PostAdd, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
-                        Text("Add to Abdul's Scanner", fontWeight = FontWeight.SemiBold)
+                        Text("Add to Abul's Scanner", fontWeight = FontWeight.SemiBold)
                         Text("Import pages into the app for editing", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }

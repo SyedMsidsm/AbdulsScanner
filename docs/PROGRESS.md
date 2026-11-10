@@ -234,3 +234,27 @@ Legend:
   - [x] 11. Settings -> Scanning 11 rows in exact sequence with proper subtitles
   - [x] 12. Shutter sound plays when unmuted
   - [x] 13. Release APK signed, verified, installed, and launched on physical device
+
+---
+
+## Rename to "Abul's Scanner" (`docs/RENAME-TO-ABULS-SCANNER.md`)
+- [x] Rename visible name under icon and recent apps (`strings.xml` -> `Abul\'s Scanner`)
+- [x] Home screen top-bar title displays `Abul's Scanner`
+- [x] Settings About, notifications, print jobs, and dialogs display `Abul's Scanner`
+- [x] Phone folder for PDF copies: `Documents/Abul's Scanner/`
+- [x] PDF-tool outputs: `Documents/Abul's Scanner/Tools/`
+- [x] Saved images: `Pictures/Abul's Scanner/`
+- [x] PDF metadata Producer: `Abul's Scanner`
+- [x] Backup file naming: `AbulsScanner-backup-yyyyMMdd-HHmm.zip`
+- [x] Dual-prefix backup rotation and restore: accepts both `AbdulsScanner-backup-` and `AbulsScanner-backup-` ZIP archives, sorting and retaining the newest 3 backups across both prefixes (`BackupRotationTest`)
+- [x] Release APK file name: `AbulsScanner-{version}.apk`
+- [x] One-time automated migration on startup moving or re-mirroring PDFs to `Documents/Abul's Scanner/` and setting DataStore `renamedToAbul = true`
+- [x] Preserved internal IDs: `applicationId` / `namespace` `com.syedmsidsm.abdulsscanner`, release signing key, database `abdulsscanner.db`, FileProvider authority
+- [x] Complete Urdu User Guide created in PDF and Markdown (`docs/AbulsScanner-User-Guide-Urdu.pdf` and `docs/USER-GUIDE-URDU.md`)
+- [x] Verification of Rename acceptance criteria:
+  - [x] 1. The name under the app icon and on the Home screen reads "Abul's Scanner"
+  - [x] 2. Updating over an older build keeps every document, tag, setting and backup schedule
+  - [x] 3. New PDF copies appear in `Documents/Abul's Scanner/`, and older copies move or re-mirror
+  - [x] 4. A backup made before the rename (`AbdulsScanner-backup-…zip`) still restores
+  - [x] 5. Automatic backup keeps only the 3 newest files, counting old- and new-named ones together
+  - [x] 6. The release APK file is named `AbulsScanner-1.0.0.apk`

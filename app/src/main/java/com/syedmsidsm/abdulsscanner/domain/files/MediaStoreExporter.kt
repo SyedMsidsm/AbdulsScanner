@@ -24,7 +24,7 @@ object MediaStoreExporter {
         fileStore: FileStore
     ): Int = withContext(Dispatchers.IO) {
         val safeDocName = MirrorStore.sanitizeFileName(doc.name)
-        val relativeSubfolder = "Pictures/Abdul's Scanner/$safeDocName"
+        val relativeSubfolder = "Pictures/Abul's Scanner/$safeDocName"
         var exportedCount = 0
 
         val resolver = context.contentResolver
@@ -56,7 +56,7 @@ object MediaStoreExporter {
             } else {
                 @Suppress("DEPRECATION")
                 val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                val targetDir = File(picturesDir, "Abdul's Scanner/$safeDocName").apply { mkdirs() }
+                val targetDir = File(picturesDir, "Abul's Scanner/$safeDocName").apply { mkdirs() }
                 val targetFile = File(targetDir, fileName)
                 renderedFile.copyTo(targetFile, overwrite = true)
                 exportedCount++

@@ -1,10 +1,20 @@
 # Changelog
 
-All notable changes to **Abdul's Scanner** will be documented in this file.
+All notable changes to **Abul's Scanner** will be documented in this file.
 
 ## [1.0.0] - 2026-11-10
 
 ### Added
+- Renamed app visible name to **Abul's Scanner** (`docs/RENAME-TO-ABULS-SCANNER.md`):
+  - Updated app title under icon (`app_name`), Home top-bar, Settings About, notifications, print job names, and dialogs.
+  - Mirrored PDF copies directory updated to `Documents/Abul's Scanner/` and PDF tools output to `Documents/Abul's Scanner/Tools/`.
+  - Saved image exports updated to `Pictures/Abul's Scanner/`.
+  - PDF document metadata Producer set to `Abul's Scanner`.
+  - Backup filename updated to `AbulsScanner-backup-yyyyMMdd-HHmm.zip`.
+  - Release APK filename updated to `AbulsScanner-{version}.apk`.
+  - One-time automated migration on app start moving existing mirrored PDFs into `Documents/Abul's Scanner/` and setting DataStore `renamedToAbul = true`.
+  - Dual-prefix backup rotation and restore: recognizes both `AbdulsScanner-backup-` and `AbulsScanner-backup-` ZIP archives, sorting and retaining the newest 3 backups across both prefixes.
+  - Added comprehensive Urdu User Guide (`docs/AbulsScanner-User-Guide-Urdu.pdf` and `docs/USER-GUIDE-URDU.md`).
 - Camera and Filters Add-on (OKEN-style camera controls, filter panel, and 7 reference filters):
   - 1:1 Kotlin port of reference Python filter algorithms (`reference_filters.py`):
     - **No shadow [BETA]**: Area downsampling to 256 px max side, separable 7x7 max filter, separable box blur (radius 6, applied twice), bilinear upscale, percentile level normalization (p1 to p99), and illumination compensation.

@@ -205,7 +205,7 @@ fun ToTextScreen(
                                 scope.launch {
                                     val uri = viewModel.exportTxtFile(context)
                                     if (uri != null) {
-                                        Toast.makeText(context, "Saved to Documents/Abdul's Scanner", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(context, "Saved to Documents/Abul's Scanner", Toast.LENGTH_LONG).show()
                                     } else {
                                         Toast.makeText(context, "Failed to save TXT", Toast.LENGTH_SHORT).show()
                                     }

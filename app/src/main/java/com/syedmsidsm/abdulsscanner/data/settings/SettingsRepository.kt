@@ -68,6 +68,7 @@ class SettingsRepository(private val context: Context) {
         val AUTO_CROP = booleanPreferencesKey("auto_crop")
         val CROP_AFTER_EACH_SCAN = booleanPreferencesKey("crop_after_each_scan")
         val MUTE_SHUTTER = booleanPreferencesKey("mute_shutter")
+        val RENAMED_TO_ABUL = booleanPreferencesKey("renamed_to_abul")
     }
 
     val theme: Flow<String> = context.dataStore.data.map { it[Keys.THEME] ?: "DARK" }
@@ -101,6 +102,7 @@ class SettingsRepository(private val context: Context) {
     val autoCrop: Flow<Boolean> = context.dataStore.data.map { it[Keys.AUTO_CROP] ?: true }
     val cropAfterEachScan: Flow<Boolean> = context.dataStore.data.map { it[Keys.CROP_AFTER_EACH_SCAN] ?: true }
     val muteShutter: Flow<Boolean> = context.dataStore.data.map { it[Keys.MUTE_SHUTTER] ?: false }
+    val renamedToAbul: Flow<Boolean> = context.dataStore.data.map { it[Keys.RENAMED_TO_ABUL] ?: false }
 
     suspend fun setTheme(theme: String) = context.dataStore.edit { it[Keys.THEME] = theme }
     suspend fun setDefaultFilter(filter: String) = context.dataStore.edit { it[Keys.DEFAULT_FILTER] = filter }
@@ -144,4 +146,5 @@ class SettingsRepository(private val context: Context) {
     suspend fun setAutoCrop(enabled: Boolean) = context.dataStore.edit { it[Keys.AUTO_CROP] = enabled }
     suspend fun setCropAfterEachScan(enabled: Boolean) = context.dataStore.edit { it[Keys.CROP_AFTER_EACH_SCAN] = enabled }
     suspend fun setMuteShutter(enabled: Boolean) = context.dataStore.edit { it[Keys.MUTE_SHUTTER] = enabled }
+    suspend fun setRenamedToAbul(renamed: Boolean) = context.dataStore.edit { it[Keys.RENAMED_TO_ABUL] = renamed }
 }
