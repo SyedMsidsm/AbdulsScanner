@@ -191,7 +191,7 @@ fun ToolsScreen(
         ToolItem(R.string.tool_watermark, Icons.Outlined.WaterDrop, route = Routes.TOOL_WATERMARK),
         ToolItem(R.string.tool_merge, Icons.Outlined.MergeType, route = Routes.TOOL_MERGE),
         ToolItem(R.string.tool_compression, Icons.Outlined.Compress, route = Routes.TOOL_COMPRESS),
-        ToolItem(R.string.tool_office_to_pdf, Icons.Outlined.Description, phaseLabel = "Phase 7", route = Routes.TOOL_OFFICE),
+        ToolItem(R.string.tool_office_to_pdf, Icons.Outlined.Description, route = Routes.TOOL_OFFICE),
         ToolItem(R.string.tool_web_to_pdf, Icons.Outlined.Web, route = Routes.TOOL_WEB)
     )
 

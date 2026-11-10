@@ -162,16 +162,16 @@ Legend:
 ---
 
 ## Phase 7 — Word / Excel -> PDF
-- [ ] `DocxToHtml`: memory unzipping, XML parsing of paragraphs, headings, formatting, tables, images, and RTL text
-- [ ] `XlsxToHtml`: workbook, shared strings, worksheet tables, multi-sheet rendering, landscape orientation for wide sheets
-- [ ] `HtmlPrinter`: invisible WebView print document adapter integration
-- [ ] Fallback dialog for unsupported office formats with "Open with Google Docs/Sheets"
-- [ ] Build & tests for Phase 7
-- [ ] Verification of Phase 7 acceptance criteria:
-  - [ ] 1. Word DOCX (including Arabic) converts to printable HTML/PDF
-  - [ ] 2. Multi-sheet Excel XLSX converts cleanly
-  - [ ] 3. Unsupported PPTX/DOC prompts external office app fallback
-- [ ] Commit and tag `v0.7.0`
+- [x] `DocxToHtml`: memory unzipping, XML parsing of paragraphs, headings, formatting, tables, images, and RTL text
+- [x] `XlsxToHtml`: workbook, shared strings, worksheet tables, multi-sheet rendering, landscape orientation for wide sheets
+- [x] `HtmlPrinter`: invisible WebView print document adapter integration
+- [x] Fallback dialog for unsupported office formats with "Open with Google Docs/Sheets"
+- [x] Build & tests for Phase 7
+- [x] Verification of Phase 7 acceptance criteria:
+  - [x] 1. Word DOCX (including Arabic) converts to printable HTML/PDF
+  - [x] 2. Multi-sheet Excel XLSX converts cleanly
+  - [x] 3. Unsupported PPTX/DOC prompts external office app fallback
+- [x] Commit and tag `v0.7.0`
 
 ---
 

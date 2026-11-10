@@ -4,6 +4,19 @@ All notable changes to **Abdul's Scanner** will be documented in this file.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-10
+
+### Added
+- `DocxToHtml` engine: in-memory ZIP decompression, XML parsing of Word documents (`word/document.xml`, `word/_rels/document.xml.rels`, and `word/media/*`), translating paragraphs (`w:p`), headings (`Title`, `Heading1`–`Heading6`), character formatting (bold `w:b`, italic `w:i`, underline `w:u`, font size `w:sz`), bullet lists (`w:numPr`), tables (`w:tbl`, `w:tr`, `w:tc`), embedded images (`w:drawing` with Base64 encoding), and Arabic right-to-left layout (`w:bidi`, `w:rtl`).
+- `XlsxToHtml` engine: in-memory ZIP decompression, workbook sheet mapping (`xl/workbook.xml`, `xl/_rels/workbook.xml.rels`), shared string table resolution (`xl/sharedStrings.xml`), worksheet cell extraction (`row`, `c`, `v`, `t`), number formatting (trailing `.0` trimming), multi-sheet rendering with page breaks, and automatic landscape orientation detection for wide sheets (>6 columns).
+- `HtmlPrinter`: off-screen `WebView` print adapter leveraging Android's native `PrintManager` with ISO A4 portrait and landscape attributes.
+- Office to PDF screen (`ToolOfficeToPdfScreen`): file picker for `.docx`, `.xlsx`, and other office documents; off-screen rendering to PDF via Android print service; post-print sheet offering direct import into Abdul's Scanner; unsupported format dialog (`.pptx`, `.doc`, `.xls`, `.ppt`, `.odt`) directing the user to open in Google Docs, Sheets, or Slides with `ACTION_VIEW`; and persistent "Doesn't look right?" help dialog.
+- Unit tests: `DocxToHtmlTest` and `XlsxToHtmlTest` validating heading tags, bold styles, bullet lists, tables, base64 images, Arabic RTL paragraphs, two-sheet workbooks, shared strings, number trimming, and landscape orientation triggers.
+
+### Decisions
+- Standard XML DOM parsing (`DocumentBuilderFactory`) is utilized for DOCX and XLSX extraction to ensure 100% platform independence between desktop unit tests and Android runtime without stubbing or mocking.
+- Dates in XLSX stay as raw serial numbers (documented in the UI help dialog) because date formatting tables in OpenXML require locale-specific number format dictionaries.
+
 ## [0.6.0] - 2026-11-10
 
 ### Added

@@ -49,6 +49,7 @@ import com.syedmsidsm.abdulsscanner.ui.screens.tags.TagsViewModel
 import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolCompressScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolImportScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolMergeScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolOfficeToPdfScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolPageReorderScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolPasswordScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.tools.ToolPdfToJpgScreen
@@ -637,6 +638,16 @@ class MainActivity : ComponentActivity() {
 
                     composable(Routes.TOOL_WEB) {
                         ToolWebToPdfScreen(
+                            container = container,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToDoc = { targetId ->
+                                navController.navigate(Routes.document(targetId))
+                            }
+                        )
+                    }
+
+                    composable(Routes.TOOL_OFFICE) {
+                        ToolOfficeToPdfScreen(
                             container = container,
                             onNavigateBack = { navController.popBackStack() },
                             onNavigateToDoc = { targetId ->
