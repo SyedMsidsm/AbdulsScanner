@@ -330,7 +330,7 @@ class SaveScanUseCase(
         val srcFile = fileStore.getSrcFile(docId, pageId)
         if (!srcFile.exists()) return@withContext false
 
-        val originalBmp = BitmapIo.decodeUpright(srcFile, maxLongSide = 4000)
+        val originalBmp = BitmapIo.decodeUpright(srcFile, maxLongSide = 2500)
         val (pageA, pageB) = BookSplit.splitBitmap(originalBmp, splitFraction, order)
         originalBmp.recycle()
 
@@ -473,7 +473,7 @@ class SaveScanUseCase(
             }
 
             // Decode raw upright
-            val rawBmp = BitmapIo.decodeUpright(origFile, maxLongSide = if (hdMode) 8000 else 4000)
+            val rawBmp = BitmapIo.decodeUpright(origFile, maxLongSide = if (hdMode) 3500 else 2500)
 
             // Crop to src/ if quad provided
             val finalSrcBmp = if (item.cropQuad != null && PerspectiveCrop.isValidQuad(item.cropQuad)) {
@@ -624,7 +624,7 @@ class SaveScanUseCase(
             }
 
             // Decode raw upright
-            val rawBmp = BitmapIo.decodeUpright(origFile, maxLongSide = if (hdMode) 8000 else 4000)
+            val rawBmp = BitmapIo.decodeUpright(origFile, maxLongSide = if (hdMode) 3500 else 2500)
 
             // Crop to src/ if quad provided and valid
             val finalSrcBmp = if (scanPage.cropQuad != null && PerspectiveCrop.isValidQuad(scanPage.cropQuad)) {

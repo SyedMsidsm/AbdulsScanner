@@ -11,6 +11,7 @@ import android.media.MediaActionSound
 import android.util.Size
 import android.view.Surface
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -504,41 +505,24 @@ fun CameraScreen(
                                     }
                                 }
                                 CameraScanMode.BOOK -> {
-                                    val bmp = BitmapIo.decodeUpright(photoFile, maxLongSide = 1000)
-                                    val rgbaMat = Mat()
-                                    Utils.bitmapToMat(bmp, rgbaMat)
-                                    val bgrMat = Mat()
-                                    Imgproc.cvtColor(rgbaMat, bgrMat, Imgproc.COLOR_RGBA2BGR)
-                                    val corners = if (autoCrop) PageDetector.detectPage(bgrMat) else null
-                                    val detectedQuad = if (corners != null) {
-                                        PageDetector.pointsToNormalizedQuad(corners, bmp.width.toFloat(), bmp.height.toFloat())
-                                    } else null
-                                    rgbaMat.release()
-                                    bgrMat.release()
-                                    bmp.recycle()
-
-                                    val item = CameraCaptureItem(rawImageFile = photoFile, cropQuad = detectedQuad)
-                                    val docId = container.saveScanUseCase.saveCameraScans(
-                                        captures = listOf(item),
-                                        kind = DocumentKind.BOOK,
-                                        targetDocId = targetDocId
-                                    )
-                                    val pages = container.database.pageDao().getByDocumentId(docId)
-                                    val pageId = pages.firstOrNull()?.id.orEmpty()
+                                    container.pendingBookScanUris = listOf(android.net.Uri.fromFile(photoFile))
                                     withContext(Dispatchers.Main) {
                                         isCapturing = false
-                                        onNavigateToBookSplit(docId, pageId)
+                                        onNavigateToBookSplit("", "")
                                     }
                                 }
                                 CameraScanMode.ID_CARD -> {
                                     if (idCardFrontFile == null) {
                                         idCardFrontFile = photoFile
+                                        val thumb = BitmapIo.decodeUpright(photoFile, maxLongSide = 160)
                                         withContext(Dispatchers.Main) {
+                                            lastCapturedThumbnail = thumb
                                             isCapturing = false
+                                            Toast.makeText(context, "Front side captured! Now turn card over to scan back side.", Toast.LENGTH_LONG).show()
                                         }
                                     } else {
-                                        val frontBmp = BitmapIo.decodeUpright(idCardFrontFile!!, maxLongSide = 2000)
-                                        val backBmp = BitmapIo.decodeUpright(photoFile, maxLongSide = 2000)
+                                        val frontBmp = BitmapIo.decodeUpright(idCardFrontFile!!, maxLongSide = 1500)
+                                        val backBmp = BitmapIo.decodeUpright(photoFile, maxLongSide = 1500)
 
                                         fun cropCard(bmp: Bitmap): Bitmap {
                                             val rgbaMat = Mat()
@@ -546,28 +530,47 @@ fun CameraScreen(
                                             val bgrMat = Mat()
                                             Imgproc.cvtColor(rgbaMat, bgrMat, Imgproc.COLOR_RGBA2BGR)
                                             val corners = PageDetector.detectPage(bgrMat)
-                                            val quad = if (corners != null) {
+                                            val detectedQuad = if (corners != null) {
                                                 PageDetector.pointsToNormalizedQuad(corners, bmp.width.toFloat(), bmp.height.toFloat())
                                             } else null
                                             rgbaMat.release()
                                             bgrMat.release()
 
-                                            val finalQuad = if (quad != null && PerspectiveCrop.isValidQuad(quad)) {
-                                                quad
+                                            val displayMetrics = context.resources.displayMetrics
+                                            val screenW = displayMetrics.widthPixels.toFloat()
+                                            val screenH = displayMetrics.heightPixels.toFloat()
+                                            val screenAspect = screenW / screenH
+                                            val frameAspect = bmp.width.toFloat() / bmp.height.toFloat()
+
+                                            val (normW, normH) = if (screenAspect < frameAspect) {
+                                                val visibleWFrac = screenAspect / frameAspect
+                                                val wCard = 0.85f * visibleWFrac
+                                                val hCard = (wCard * bmp.width / 1.585f) / bmp.height
+                                                Pair(wCard, hCard)
                                             } else {
-                                                val aspect = 1.585f
-                                                val wFrac = 0.85f
-                                                val hFrac = (wFrac * bmp.width / aspect) / bmp.height
-                                                val left = (1f - wFrac) / 2f
-                                                val right = left + wFrac
-                                                val top = (1f - hFrac.coerceIn(0.1f, 0.9f)) / 2f
-                                                val bottom = top + hFrac.coerceIn(0.1f, 0.9f)
-                                                Quad(
-                                                    p0 = Point2D(left, top),
-                                                    p1 = Point2D(right, top),
-                                                    p2 = Point2D(right, bottom),
-                                                    p3 = Point2D(left, bottom)
-                                                )
+                                                val visibleHFrac = frameAspect / screenAspect
+                                                val wCard = 0.85f
+                                                val hCard = (wCard * bmp.width / 1.585f) / bmp.height * visibleHFrac
+                                                Pair(wCard, hCard)
+                                            }
+
+                                            val left = (1f - normW) / 2f
+                                            val right = left + normW
+                                            val top = (1f - normH) / 2f
+                                            val bottom = top + normH
+                                            val bracketQuad = Quad(
+                                                p0 = Point2D(left.coerceIn(0f, 1f), top.coerceIn(0f, 1f)),
+                                                p1 = Point2D(right.coerceIn(0f, 1f), top.coerceIn(0f, 1f)),
+                                                p2 = Point2D(right.coerceIn(0f, 1f), bottom.coerceIn(0f, 1f)),
+                                                p3 = Point2D(left.coerceIn(0f, 1f), bottom.coerceIn(0f, 1f))
+                                            )
+
+                                            val finalQuad = if (detectedQuad != null && PerspectiveCrop.isValidQuad(detectedQuad) &&
+                                                com.syedmsidsm.abdulsscanner.domain.scan.CaptureGuidance.polygonArea(detectedQuad) >= 0.10f
+                                            ) {
+                                                detectedQuad
+                                            } else {
+                                                bracketQuad
                                             }
                                             return PerspectiveCrop.crop(bmp, finalQuad) ?: bmp
                                         }
@@ -591,6 +594,7 @@ fun CameraScreen(
                                         composed.recycle()
                                         withContext(Dispatchers.Main) {
                                             isCapturing = false
+                                            lastCapturedThumbnail = null
                                             onNavigateToDocument(docId)
                                         }
                                     }
@@ -860,7 +864,16 @@ fun CameraScreen(
                 BookModeOverlay(bookDirection = bookDirection, liveHint = liveHint, liveQuad = liveQuad)
             }
             CameraScanMode.ID_CARD -> {
-                IdCardModeOverlay(isBackSide = idCardFrontFile != null, liveHint = liveHint, liveQuad = liveQuad)
+                IdCardModeOverlay(
+                    isBackSide = idCardFrontFile != null,
+                    liveHint = liveHint,
+                    liveQuad = liveQuad,
+                    onResetFront = {
+                        idCardFrontFile?.delete()
+                        idCardFrontFile = null
+                        lastCapturedThumbnail = null
+                    }
+                )
             }
             CameraScanMode.TO_TEXT -> {
                 ToTextModeOverlay(liveHint = liveHint, liveQuad = liveQuad)
@@ -1703,7 +1716,12 @@ fun BookModeOverlay(bookDirection: BookDirection, liveHint: GuidanceHint, liveQu
 }
 
 @Composable
-fun IdCardModeOverlay(isBackSide: Boolean, liveHint: GuidanceHint, liveQuad: Quad?) {
+fun IdCardModeOverlay(
+    isBackSide: Boolean,
+    liveHint: GuidanceHint,
+    liveQuad: Quad?,
+    onResetFront: () -> Unit = {}
+) {
     val brandGreen = MaterialTheme.colorScheme.primary
 
     Box(
@@ -1732,20 +1750,40 @@ fun IdCardModeOverlay(isBackSide: Boolean, liveHint: GuidanceHint, liveQuad: Qua
             )
         }
 
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = Color.Black.copy(alpha = 0.7f),
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 100.dp)
+                .padding(top = 96.dp)
         ) {
-            Text(
-                text = if (isBackSide) "Back page" else "Front page",
-                color = brandGreen,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-            )
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color.Black.copy(alpha = 0.75f)
+            ) {
+                Text(
+                    text = if (isBackSide) "Step 2 of 2: Scan Back side" else "Step 1 of 2: Scan Front side",
+                    color = brandGreen,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                )
+            }
+            if (isBackSide) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFF2A2A2A).copy(alpha = 0.9f),
+                    modifier = Modifier.clickable { onResetFront() }
+                ) {
+                    Text(
+                        text = "Retake Front side",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    )
+                }
+            }
         }
 
         Box(

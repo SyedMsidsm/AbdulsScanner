@@ -321,4 +321,15 @@ Legend:
 - [x] 9. Dead code cleanup (`batchCaptures`, `finishBatch`) and pass `defaultFilter` to `ScanSessionViewModel.addPage`.
 - [x] 10. Unit tests and release verification.
 
+---
+
+## Fixes & Device Optimization (`v1.0.4`)
+- [x] 1. Fix crop screen display scaling bug where `maxWidth.value` (Dp) was used in Canvas pixels, causing photos to display as small thumbnails in the top-left corner.
+- [x] 2. Fix Book scanner crash caused by `OutOfMemoryError` during full document save and filter rendering; add `android:largeHeap="true"` to `AndroidManifest.xml` and route spreads directly to `BookSplitScreen`.
+- [x] 3. Cap bitmap decoding to 2500px in `PageRenderer.kt`, `SaveScanUseCase.kt`, and `BookSplitScreen.kt` to prevent memory exhaustion on high-resolution camera sensors.
+- [x] 4. Refine ID card scanning with step-by-step guidance (Front side / Back side), toast notification, thumbnail preview, "Retake Front" option, and precise `FILL_CENTER` bracket aspect mapping.
+- [x] 5. Route Tools screen ID Card and Book items to built-in CameraX scanner modes.
+- [x] 6. Build and verify release `v1.0.4` APK and update device.
+
+
 

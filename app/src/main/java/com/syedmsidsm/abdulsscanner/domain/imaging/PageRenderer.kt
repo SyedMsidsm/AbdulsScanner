@@ -25,7 +25,7 @@ class PageRenderer(private val fileStore: FileStore) {
         require(baseFile.exists()) { "Source file not found at ${baseFile.absolutePath}" }
 
         // 1. Decode base image (raw photo if available, otherwise src)
-        var currentBitmap = BitmapIo.decodeUpright(baseFile, maxLongSide = 4000)
+        var currentBitmap = BitmapIo.decodeUpright(baseFile, maxLongSide = 2500)
 
         // 2. Perspective crop if cropQuad != null
         if (!page.cropQuad.isNullOrBlank() && page.cropQuad != "null") {

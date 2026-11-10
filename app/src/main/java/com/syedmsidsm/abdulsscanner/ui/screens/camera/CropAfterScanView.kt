@@ -271,8 +271,8 @@ fun CropAfterScanView(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center
         ) {
-            val boxW = maxWidth.value
-            val boxH = maxHeight.value
+            val boxW = constraints.maxWidth.toFloat()
+            val boxH = constraints.maxHeight.toFloat()
             val imgW = displayBitmap.width.toFloat()
             val imgH = displayBitmap.height.toFloat()
 

@@ -251,19 +251,22 @@ fun BookSplitScreen(
                             .background(Color.Black),
                         contentAlignment = Alignment.Center
                     ) {
-                        val containerW = maxWidth.value
-                        val containerH = maxHeight.value
+                        val containerW = constraints.maxWidth.toFloat()
+                        val containerH = constraints.maxHeight.toFloat()
                         val imgW = bmp.width.toFloat()
                         val imgH = bmp.height.toFloat()
 
                         val scale = minOf(containerW / imgW, containerH / imgH)
                         val drawW = imgW * scale
                         val drawH = imgH * scale
+                        val density = androidx.compose.ui.platform.LocalDensity.current
+                        val drawWDp = with(density) { drawW.toDp() }
+                        val drawHDp = with(density) { drawH.toDp() }
 
                         Box(
                             modifier = Modifier
-                                .width(drawW.dp)
-                                .height(drawH.dp)
+                                .width(drawWDp)
+                                .height(drawHDp)
                         ) {
                             Canvas(modifier = Modifier.fillMaxSize()) {
                                 drawImage(

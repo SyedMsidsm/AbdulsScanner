@@ -173,9 +173,9 @@ fun ToolsScreen(
     }
 
     val scanTools = listOf(
-        ToolItem(R.string.tool_id_card, Icons.Outlined.Badge, route = Routes.ID_CARD),
+        ToolItem(R.string.tool_id_card, Icons.Outlined.Badge, action = { onNavigateToRoute(Routes.camera("ID_CARD")) }),
         ToolItem(R.string.tool_scan_docs, Icons.Outlined.CameraAlt, action = onCameraClick),
-        ToolItem(R.string.tool_book, Icons.Outlined.MenuBook, action = { showBookPrompt = true }),
+        ToolItem(R.string.tool_book, Icons.Outlined.MenuBook, action = { onNavigateToRoute(Routes.camera("BOOK")) }),
         ToolItem(R.string.tool_qr_code, Icons.Outlined.QrCodeScanner, action = { showQrDialog = true }),
         ToolItem(R.string.tool_to_text, Icons.Outlined.TextFields, action = {
             scope.launch {

@@ -2,6 +2,25 @@
 
 All notable changes to **Abul's Scanner** will be documented in this file.
 
+## [1.0.4] - 2026-11-11
+
+### Fixed & Refined
+- **Crop View Display Scale & Dimensions (`CropAfterScanView.kt`)**:
+  - Fixed a critical unit conversion bug where `BoxWithConstraints` was using `maxWidth.value` and `maxHeight.value` (density-independent pixels / Dp) instead of `constraints.maxWidth` and `constraints.maxHeight` (physical pixels) inside Compose Canvas. On high-resolution devices (such as 1440x3120 on Galaxy S24 Ultra), this previously caused the captured document to render as a tiny 400px thumbnail squashed in the top-left corner of the black canvas with all 8 crop handles clustered around it.
+  - Now uses pixel constraints directly (`constraints.maxWidth.toFloat()`), scaling and centering the photo to fully utilize the viewport with exact 1:1 touch coordinate mapping for all 8 corner and mid-edge handles and magnifier loupe.
+- **Book Scanner Out-Of-Memory Crash (`CameraScreen.kt` & `SaveScanUseCase.kt`)**:
+  - Identified root cause of book scanner crash via logcat: `java.lang.OutOfMemoryError: Failed to allocate a 149817616 byte allocation with 50331648 free bytes and 106MB until OOM`.
+  - Added `android:largeHeap="true"` to `<application>` in `AndroidManifest.xml`, raising heap ceiling from 256MB to 512MB on modern devices.
+  - Prevented premature full document save, OpenCV filter rendering, and PDF building before spread splitting. `CameraScanMode.BOOK` now directly forwards the captured book spread to `BookSplitScreen` via `container.pendingBookScanUris`.
+  - Capped maximum image decode long-side to 2500px across `PageRenderer.kt`, `SaveScanUseCase.kt`, and `BookSplitScreen.kt` (providing 300 DPI A4 resolution while reducing heap allocation from 150MB+ down to ~18MB).
+- **ID Card Scanner Pipeline & Framing Refinements (`CameraScreen.kt` & `IdCardLayout.kt`)**:
+  - Added clear step indicators and user guidance for ID card scanning: "Step 1 of 2: Scan Front side" and "Step 2 of 2: Scan Back side" with toast feedback and bottom thumbnail preview upon capturing front side.
+  - Added "Retake Front side" button when capturing the back side.
+  - Corrected viewfinder bracket aspect ratio mapping (`aspect = 1.585`) with `FILL_CENTER` aspect ratio compensation so the auto-crop bounds match what the user framed inside the on-screen brackets rather than capturing excess table background.
+  - Optimized `IdCardLayout` canvas dimensions to 1754x2480 (standard A4 at 212 DPI), cutting composite bitmap memory by 50%.
+- **Tools Screen Routing (`ToolsScreen.kt`)**:
+  - Routed "ID Card" and "Book" tool items to use the built-in CameraX scanner (`Routes.camera("ID_CARD")` and `Routes.camera("BOOK")`) rather than legacy Play Services scanner calls.
+
 ## [1.0.3] - 2026-11-10
 
 ### Fixed & Refined (Audit Bug Fixes)
