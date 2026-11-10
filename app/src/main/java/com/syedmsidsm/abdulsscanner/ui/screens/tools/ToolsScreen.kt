@@ -5,7 +5,11 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,6 +52,7 @@ import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.Web
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -59,6 +64,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -112,8 +118,22 @@ fun ToolsScreen(
     val scope = rememberCoroutineScope()
 
     var showQrDialog by remember { mutableStateOf(false) }
+    var showBookPrompt by remember { mutableStateOf(false) }
     var showDocPickerForOcr by remember { mutableStateOf(false) }
     var activeDocs by remember { mutableStateOf<List<DocumentEntity>>(emptyList()) }
+
+    val bookScannerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val scanResult = GmsDocumentScanningResult.fromActivityResultIntent(result.data)
+            val pages = scanResult?.pages?.map { it.imageUri } ?: emptyList()
+            if (pages.isNotEmpty()) {
+                container.pendingBookScanUris = pages
+                onNavigateToRoute(Routes.book())
+            }
+        }
+    }
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -153,9 +173,9 @@ fun ToolsScreen(
     }
 
     val scanTools = listOf(
-        ToolItem(R.string.tool_id_card, Icons.Outlined.Badge, phaseLabel = "Phase 5", route = Routes.ID_CARD),
+        ToolItem(R.string.tool_id_card, Icons.Outlined.Badge, route = Routes.ID_CARD),
         ToolItem(R.string.tool_scan_docs, Icons.Outlined.CameraAlt, action = onCameraClick),
-        ToolItem(R.string.tool_book, Icons.Outlined.MenuBook, phaseLabel = "Phase 5"),
+        ToolItem(R.string.tool_book, Icons.Outlined.MenuBook, action = { showBookPrompt = true }),
         ToolItem(R.string.tool_qr_code, Icons.Outlined.QrCodeScanner, action = { showQrDialog = true }),
         ToolItem(R.string.tool_to_text, Icons.Outlined.TextFields, action = {
             scope.launch {
@@ -167,7 +187,7 @@ fun ToolsScreen(
 
     val processTools = listOf(
         ToolItem(R.string.tool_import_files, Icons.Outlined.UploadFile, phaseLabel = "Phase 6", route = Routes.TOOL_IMPORT),
-        ToolItem(R.string.tool_collage, Icons.Outlined.GridOn, phaseLabel = "Phase 5", route = Routes.COLLAGE),
+        ToolItem(R.string.tool_collage, Icons.Outlined.GridOn, route = Routes.COLLAGE),
         ToolItem(R.string.tool_watermark, Icons.Outlined.WaterDrop, phaseLabel = "Phase 6", route = Routes.TOOL_WATERMARK),
         ToolItem(R.string.tool_merge, Icons.Outlined.MergeType, phaseLabel = "Phase 6", route = Routes.TOOL_MERGE),
         ToolItem(R.string.tool_compression, Icons.Outlined.Compress, phaseLabel = "Phase 6", route = Routes.TOOL_COMPRESS),
@@ -423,6 +443,41 @@ fun ToolsScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
+        }
+
+        if (showBookPrompt) {
+            AlertDialog(
+                onDismissRequest = { showBookPrompt = false },
+                title = { Text(stringResource(R.string.tool_book)) },
+                text = { Text("Lay the book open and flat. Scan both pages together; you'll split them next.") },
+                confirmButton = {
+                    Button(onClick = {
+                        showBookPrompt = false
+                        val options = GmsDocumentScannerOptions.Builder()
+                            .setGalleryImportAllowed(true)
+                            .setResultFormats(GmsDocumentScannerOptions.RESULT_FORMAT_JPEG)
+                            .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
+                            .build()
+                        if (activity != null) {
+                            GmsDocumentScanning.getClient(options)
+                                .getStartScanIntent(activity)
+                                .addOnSuccessListener { intentSender ->
+                                    bookScannerLauncher.launch(IntentSenderRequest.Builder(intentSender).build())
+                                }
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(context, "Scanner unavailable: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                        }
+                    }) {
+                        Text("Start Scanning")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showBookPrompt = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }

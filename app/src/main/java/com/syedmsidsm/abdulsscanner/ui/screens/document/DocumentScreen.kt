@@ -40,6 +40,7 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Label
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Print
@@ -109,6 +110,7 @@ fun DocumentScreen(
     onNavigateToPage: (String, String) -> Unit,
     onNavigateToOcr: (String) -> Unit,
     onNavigateToSecurity: () -> Unit = {},
+    onNavigateToBookSplit: (String, String) -> Unit = { _, _ -> },
     onSharePdf: (DocumentEntity) -> Unit,
     onShareJpg: (DocumentEntity) -> Unit,
     onPrint: (DocumentEntity) -> Unit
@@ -130,6 +132,7 @@ fun DocumentScreen(
     var newTagName by remember { mutableStateOf("") }
     var showPageSizeDialog by remember { mutableStateOf(false) }
     var showNoPinDialog by remember { mutableStateOf(false) }
+    var showPageSelectForBookSplit by remember { mutableStateOf(false) }
     val allTags by viewModel.allTags.collectAsState(initial = emptyList())
 
     // Add pages scanner launcher
@@ -589,6 +592,36 @@ fun DocumentScreen(
                     }
                 }
 
+                // Book split
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable {
+                            showMoreSheet = false
+                            if (uiState.pages.isNotEmpty()) {
+                                if (uiState.pages.size == 1) {
+                                    onNavigateToBookSplit(doc.id, uiState.pages[0].id)
+                                } else {
+                                    showPageSelectForBookSplit = true
+                                }
+                            }
+                        }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.MenuBook,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "Book split",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+
                 // Export JPGs to Pictures
                 Row(
                     modifier = Modifier
@@ -653,6 +686,49 @@ fun DocumentScreen(
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
+    }
+
+    if (showPageSelectForBookSplit) {
+        AlertDialog(
+            onDismissRequest = { showPageSelectForBookSplit = false },
+            title = { Text("Select Page to Split") },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    uiState.pages.forEachIndexed { idx, page ->
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    showPageSelectForBookSplit = false
+                                    if (doc != null) {
+                                        onNavigateToBookSplit(doc.id, page.id)
+                                    }
+                                },
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Page ${idx + 1}", fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showPageSelectForBookSplit = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     // Tag Selection Bottom Sheet

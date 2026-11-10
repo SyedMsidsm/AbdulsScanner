@@ -136,4 +136,6 @@ class AppContainer(val context: Context) {
             settingsRepository = settingsRepository
         )
     }
+
+    var pendingBookScanUris: List<android.net.Uri> = emptyList()
 }

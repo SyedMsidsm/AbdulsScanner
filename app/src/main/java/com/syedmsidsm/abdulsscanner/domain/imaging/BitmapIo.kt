@@ -1,8 +1,10 @@
 package com.syedmsidsm.abdulsscanner.domain.imaging
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
 import java.io.File
 import java.io.FileInputStream
@@ -10,6 +12,18 @@ import java.io.FileOutputStream
 import kotlin.math.roundToInt
 
 object BitmapIo {
+
+    fun decodeFromUri(context: Context, uri: Uri, maxLongSide: Int = 4000): Bitmap {
+        val tempFile = File.createTempFile("uri_decode_", ".jpg", context.cacheDir)
+        try {
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                tempFile.outputStream().use { output -> input.copyTo(output) }
+            }
+            return decodeUpright(tempFile, maxLongSide)
+        } finally {
+            tempFile.delete()
+        }
+    }
 
     fun decodeUpright(file: File, maxLongSide: Int = 4000): Bitmap {
         // First read dimensions and exif

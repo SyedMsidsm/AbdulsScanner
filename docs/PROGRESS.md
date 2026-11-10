@@ -124,16 +124,16 @@ Legend:
 ---
 
 ## Phase 5 — Special scans
-- [ ] ID Card scan flow (`IdCardLayout`): front and back capture, auto-composition onto 2480×3508 A4 300 DPI canvas at real 85.6×54 mm size
-- [ ] Book scan flow (`BookSplit`): spread capture, split line adjustment (30%-70%), A/B page labeling, LTR/RTL reading order, gutter trim
-- [ ] Document -> More -> Book split for existing pages
-- [ ] Collage tool (`CollageLayout`): 2-4 image selection, layout templates (rows/columns/grids), compose on A4 300 DPI
-- [ ] Build & tests for Phase 5
-- [ ] Verification of Phase 5 acceptance criteria:
-  - [ ] 1. ID card prints at exact 1:1 physical size
-  - [ ] 2. Book spread splitting correctly assigns first page based on RTL/LTR
-  - [ ] 3. Collage arrangements render cleanly on A4
-- [ ] Commit and tag `v0.5.0`
+- [x] ID Card scan flow (`IdCardLayout`): front and back capture, auto-composition onto 2480×3508 A4 300 DPI canvas at real 85.6×54 mm size
+- [x] Book scan flow (`BookSplit`): spread capture, split line adjustment (30%-70%), A/B page labeling, LTR/RTL reading order, gutter trim
+- [x] Document -> More -> Book split for existing pages
+- [x] Collage tool (`CollageLayout`): 2-4 image selection, layout templates (rows/columns/grids), compose on A4 300 DPI
+- [x] Build & tests for Phase 5
+- [x] Verification of Phase 5 acceptance criteria:
+  - [x] 1. ID card prints at exact 1:1 physical size
+  - [x] 2. Book spread splitting correctly assigns first page based on RTL/LTR
+  - [x] 3. Collage arrangements render cleanly on A4
+- [x] Commit and tag `v0.5.0`
 
 ---
 

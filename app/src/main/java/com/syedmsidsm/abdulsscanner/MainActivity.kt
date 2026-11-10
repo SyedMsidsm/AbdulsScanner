@@ -39,6 +39,9 @@ import com.syedmsidsm.abdulsscanner.ui.screens.qr.QrHistoryViewModel
 import com.syedmsidsm.abdulsscanner.ui.screens.qr.QrResultScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.security.LockScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.security.SecuritySettingsScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.special.BookSplitScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.special.CollageScreen
+import com.syedmsidsm.abdulsscanner.ui.screens.special.IdCardScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.settings.SettingsScreen
 import com.syedmsidsm.abdulsscanner.ui.screens.settings.SettingsViewModel
 import com.syedmsidsm.abdulsscanner.ui.screens.tags.TagsScreen
@@ -271,6 +274,9 @@ class MainActivity : ComponentActivity() {
                             onNavigateToSecurity = {
                                 navController.navigate(Routes.SETTINGS_SECURITY)
                             },
+                            onNavigateToBookSplit = { dId, pId ->
+                                navController.navigate(Routes.book(dId, pId))
+                            },
                             onSharePdf = { doc -> shareDocumentPdf(doc) },
                             onShareJpg = { doc -> shareDocumentJpgs(doc) },
                             onPrint = { doc -> printDocumentPdf(doc) }
@@ -450,6 +456,56 @@ class MainActivity : ComponentActivity() {
                             mlKitLatinEngine = container.mlKitLatinEngine,
                             settingsRepository = container.settingsRepository,
                             onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Routes.ID_CARD) {
+                        IdCardScreen(
+                            saveScanUseCase = container.saveScanUseCase,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToDocument = { docId ->
+                                navController.navigate(Routes.document(docId)) {
+                                    popUpTo(Routes.TOOLS) { inclusive = false }
+                                }
+                            }
+                        )
+                    }
+
+                    composable(
+                        route = Routes.BOOK,
+                        arguments = listOf(
+                            navArgument("docId") { type = NavType.StringType; defaultValue = "" },
+                            navArgument("pageId") { type = NavType.StringType; defaultValue = "" }
+                        )
+                    ) { backStackEntry ->
+                        val docId = backStackEntry.arguments?.getString("docId").orEmpty()
+                        val pageId = backStackEntry.arguments?.getString("pageId").orEmpty()
+
+                        BookSplitScreen(
+                            docId = if (docId.isNotBlank()) docId else null,
+                            pageId = if (pageId.isNotBlank()) pageId else null,
+                            spreadUris = if (docId.isBlank()) container.pendingBookScanUris else emptyList(),
+                            saveScanUseCase = container.saveScanUseCase,
+                            fileStore = container.fileStore,
+                            settingsRepository = container.settingsRepository,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToDocument = { newDocId ->
+                                navController.navigate(Routes.document(newDocId)) {
+                                    popUpTo(Routes.TOOLS) { inclusive = false }
+                                }
+                            }
+                        )
+                    }
+
+                    composable(Routes.COLLAGE) {
+                        CollageScreen(
+                            saveScanUseCase = container.saveScanUseCase,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToDocument = { docId ->
+                                navController.navigate(Routes.document(docId)) {
+                                    popUpTo(Routes.TOOLS) { inclusive = false }
+                                }
+                            }
                         )
                     }
                 }

@@ -4,6 +4,20 @@ All notable changes to **Abdul's Scanner** will be documented in this file.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-10
+
+### Added
+- ID Card scan flow (`IdCardScreen`, `IdCardLayout`): 2-sided capture (or single side with scan back/save front options), automatic composition on a white A4 300 DPI canvas (2480 × 3508 px) with ISO/IEC 7810 ID-1 real physical card scale (1011 × 638 px = 85.6 × 54 mm), aspect ratio preservation, automatic portrait-to-landscape rotation, 1-page document creation with `kind = ID_CARD`, `pageSize = A4`, and automatic "ID Card" tag assignment.
+- Book spread scan flow (`BookSplitScreen`, `BookSplit`): spread capture with no page limit, interactive split screen with draggable green dashed line clamped to 30%–70% width, 1.5% gutter trim per side, translucent "A" and "B" letter indicators, LTR vs. RTL reading order toggle (supporting Arabic right-to-left books), "Apply this line to all spreads" option, and batch saving with `kind = BOOK`.
+- Document page Book split option: Document Screen -> More -> "Book split" enables splitting any existing scanned book spread in a document into two separate pages in place, recalculating page numbers, regenerating the PDF, and re-mirroring.
+- Collage tool (`CollageScreen`, `CollageLayout`): pick 2 to 4 photos or pages, layout templates (2 rows, 2 columns, 3 rows, 1 large + 2 small, 2×2 grid, 4 rows) on A4 300 DPI canvas (outer margin 120 px, gap 60 px), interactive live preview, and save to a 1-page document with `kind = COLLAGE`, `pageSize = A4`.
+- Unit tests: `IdCardLayoutTest`, `BookSplitTest`, and `CollageLayoutTest` verifying canvas dimensions, physical card bounding boxes, gutter trim arithmetic, reading order inversion, and cell grid layouts.
+
+### Decisions
+- ID card composition centers both front and back sides horizontally at x = 734, front at y = 600, back at y = 1478, ensuring exact 1:1 real-world physical scale when printed without scaling.
+- Book split line position starts at 50% and clamps strictly within 30%–70% of spread width to prevent accidental degenerate page cuts.
+- Collage layouts fit images centered inside their allocated cells with aspect ratio preservation, drawing onto a crisp 300 DPI white canvas.
+
 ## [0.4.0] - 2026-11-10
 
 ### Added

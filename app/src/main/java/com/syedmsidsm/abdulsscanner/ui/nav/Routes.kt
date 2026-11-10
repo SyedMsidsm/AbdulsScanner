@@ -8,7 +8,7 @@ object Routes {
     const val TAGS = "tags"
     const val TOOLS = "tools"
     const val ID_CARD = "idcard"
-    const val BOOK = "book/{docId}"
+    const val BOOK = "book?docId={docId}&pageId={pageId}"
     const val COLLAGE = "collage"
     const val QR = "qr"
     const val QR_RESULT = "qr/result/{id}?raw={raw}"
@@ -37,7 +37,7 @@ object Routes {
     fun lock(docId: String) = "lock/$docId"
     fun pageViewer(docId: String, pageId: String) = "page/$docId/$pageId"
     fun ocr(docId: String, pageIds: String = "") = "ocr/$docId?pages=$pageIds"
-    fun book(docId: String) = "book/$docId"
+    fun book(docId: String = "", pageId: String = "") = "book?docId=$docId&pageId=$pageId"
     fun qrResult(id: Long = 0L, raw: String = ""): String {
         val encodedRaw = android.net.Uri.encode(raw)
         return "qr/result/$id?raw=$encodedRaw"
